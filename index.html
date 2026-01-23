@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -775,7 +774,7 @@
           <div class="grid grid-2">
             <div class="field">
               <label>Tipo de montaje</label>
-              <div class="pill-group">
+              <div class="pill-group" id="grupoMontaje">
                 <label class="pill-option">
                   <input type="radio" name="montaje" value="pilares" checked />
                   <span>Sobre pilares</span>
@@ -794,6 +793,7 @@
                 </label>
               </div>
               <div class="field-note" id="textoMontaje"></div>
+              <div class="field-note" id="textoMontajeDetallado" style="display: none;"></div>
               <div id="bloqueRefuerzo" class="refuerzo-bloque" style="display: none;">
                 <label class="inline-checkbox">
                   <input type="checkbox" id="chkPilaresRefuerzo" />
@@ -835,18 +835,18 @@
           <div class="grid grid-2" style="margin-top: 0.7rem;">
             <div class="field">
               <label>Configuración de motores</label>
-              <div class="pill-group">
+              <div class="pill-group" id="grupoModoMotor">
                 <label class="pill-option">
                   <input type="radio" name="modoMotor" value="todos-izquierda" checked />
-                  <span>Motor a izquierda</span>
+                  <span id="labelMotorIzquierda">Motor a izquierda</span>
                 </label>
                 <label class="pill-option">
                   <input type="radio" name="modoMotor" value="todos-derecha" />
-                  <span>Motor a derecha</span>
+                  <span id="labelMotorDerecha">Motor a derecha</span>
                 </label>
-                <label class="pill-option">
+                <label class="pill-option" id="pillPersonalizado">
                   <input type="radio" name="modoMotor" value="personalizado" />
-                  <span>Personalizado</span>
+                  <span id="labelMotorPersonalizado">Personalizado por módulo</span>
                 </label>
               </div>
             </div>
@@ -871,7 +871,7 @@
         </section>
 
         <!-- TARJETA 3: Acabados -->
-        <section class="card solo-web" style="margin-top: 0.9rem;">
+        <section class="card solo-web" id="preciosCard" style="margin-top: 0.9rem;">
           <div class="card-header">
             <div class="card-title">
               <span class="step-badge">3</span>
@@ -882,7 +882,7 @@
 
           <div class="field">
             <label>Colores de la pérgola</label>
-            <div class="pill-group">
+            <div class="pill-group" id="grupoColorPergola">
               <label class="pill-option">
                 <input type="radio" name="colorModo" value="mono" checked />
                 <span>Pérgola monocolor</span>
@@ -927,7 +927,7 @@
             </div>
 
             <div class="grid grid-2" style="margin-top: 0.5rem;">
-              <div class="field">
+              <div class="field" id="refAcabadoGlobalWrap">
                 <label for="refAcabadoGlobal">Referencia acabado general</label>
                 <input id="refAcabadoGlobal" type="text" placeholder="Ej.: RAL 9016" />
               </div>
@@ -978,14 +978,14 @@
         </section>
 
         <!-- TARJETA 5: Resumen de configuración -->
-        <section class="card" style="margin-top: 0.9rem;">
+        <section class="card" id="resumenCard" style="margin-top: 0.9rem;">
           <div class="card-header">
             <div>
               <div class="card-title">
                 <span class="step-badge">5</span>
                 Resumen de configuración
               </div>
-              <div class="ref-line">
+              <div class="ref-line" id="refLine">
                 Ref. presupuesto: <span id="refCodeInline"></span>
               </div>
             </div>
@@ -1016,6 +1016,8 @@
             <h3>Número de lamas según salida</h3>
             <p>Introduce la salida en metros para ver el número orientativo de lamas.</p>
           </div>
+          
+          <div id="resumenAvisosMontaje" class="aviso-amarillo solo-pdf" style="display: none;"></div>
         </section>
 
         <!-- DIAGRAMA PARA PDF (oculto en web) -->
@@ -1039,7 +1041,7 @@
         </section>
 
         <!-- TARJETA 6: Informes económicos -->
-        <section class="card solo-web" style="margin-top: 0.9rem;">
+        <section class="card solo-web" id="informesCard" style="margin-top: 0.9rem;">
           <div class="card-header">
             <div class="card-title">
               <span class="step-badge">6</span>

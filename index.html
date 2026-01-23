@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>Presupuestador pérgola bioclimática - Galisur</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 
   <style>
     /* ============================================
@@ -547,102 +546,6 @@
       display: block;
     }
 
-    .solo-pdf {
-      display: none;
-    }
-
-    /* ============================================
-       MODO PDF (para generación)
-       ============================================ */
-    .pdf-mode .step-badge {
-      display: none !important;
-    }
-
-    .pdf-mode .solo-pdf {
-      display: block;
-    }
-
-    .pdf-mode .solo-web {
-      display: none !important;
-    }
-
-    .pdf-mode #resumenLamas {
-      display: none !important;
-    }
-
-    .pdf-mode #pdfDiagramSection {
-      border: none;
-      box-shadow: none;
-      background: #ffffff;
-      padding: 0;
-      margin-bottom: 0.6rem;
-    }
-
-    .pdf-mode #pdfDiagramSection .diagram-wrapper {
-      max-width: 360px;
-      overflow: visible;
-    }
-
-    .pdf-mode #pdfDiagramSection svg {
-      max-width: 72%;
-      width: 300px;
-      height: 212px;
-    }
-
-    /* PDF Header */
-    .pdf-header {
-      margin: 0 0 0.85rem 0;
-      padding: 0.25rem 0.15rem 0;
-    }
-
-    .pdf-logo-row {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      flex-wrap: wrap;
-    }
-
-    .pdf-logo-brand {
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      min-width: 240px;
-    }
-
-    .pdf-logo-img {
-      height: 34px;
-      width: auto;
-      object-fit: contain;
-    }
-
-    .pdf-logo-main {
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      font-size: 0.8rem;
-      color: var(--blue-main);
-    }
-
-    .pdf-logo-sub {
-      font-size: 0.7rem;
-      color: var(--text-soft);
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-    }
-
-    .pdf-logo-right {
-      margin-left: auto;
-      font-size: 0.7rem;
-      color: var(--text-soft);
-      text-align: right;
-    }
-
-    .pdf-separator {
-      border: none;
-      border-top: 1px solid #e2e8f0;
-      margin-top: 0.5rem;
-    }
-
     /* ============================================
        MEDIA QUERIES PARA IMPRESIÓN
        ============================================ */
@@ -1016,28 +919,6 @@
             <h3>Número de lamas según salida</h3>
             <p>Introduce la salida en metros para ver el número orientativo de lamas.</p>
           </div>
-          
-          <div id="resumenAvisosMontaje" class="aviso-amarillo solo-pdf" style="display: none;"></div>
-        </section>
-
-        <!-- DIAGRAMA PARA PDF (oculto en web) -->
-        <section class="card solo-pdf" id="pdfDiagramSection" style="margin-top: 0.9rem; display: none;">
-          <div class="card-header">
-            <div class="card-title">Vista superior esquemática</div>
-          </div>
-          <div class="diagram-wrapper">
-            <svg id="pergolaSvgPdf" viewBox="0 0 340 240"></svg>
-          </div>
-          <div style="width: 100%; max-width: 520px; margin: 6px auto 0; font-size: 10px; color: #4b5563; line-height: 1.4;">
-            <strong>Leyenda:</strong>
-            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 3px;">
-              <span><span style="color: #16a34a;">■</span> Pilares</span>
-              <span><span style="color: #facc15;">■</span> Refuerzo</span>
-              <span><span style="color: #9ca3af;">■</span> Pared</span>
-              <span><span style="color: #f97316;">■</span> Motor</span>
-              <span>↔ Lamas</span>
-            </div>
-          </div>
         </section>
 
         <!-- TARJETA 6: Informes económicos -->
@@ -1052,25 +933,15 @@
 
           <div class="note" style="margin-bottom: 0.75rem;">
             <div class="note-icon">📄</div>
-            <div class="grid grid-2" style="gap: 0.5rem; align-items: flex-end;">
-              <label style="display: flex; flex-direction: column; gap: 0.35rem; font-weight: 600; color: var(--text-soft);">
-                Documento a visualizar / imprimir
-                <select id="selectorDocumento">
+            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+              <label style="font-weight: 600; color: var(--text-soft);">
+                Documento a visualizar
+                <select id="selectorDocumento" style="margin-top: 0.35rem;">
                   <option value="material">Informe de material</option>
                   <option value="peso">Peso y perímetros</option>
                   <option value="corte">Hoja de corte</option>
                 </select>
               </label>
-              <div class="btn-row" style="justify-content: flex-end;">
-                <button type="button" class="secondary" id="btnCompartirPDF">
-                  <span>⤴</span>
-                  <span>Compartir</span>
-                </button>
-                <button class="primary" id="btnGenerarPDF" type="button">
-                  <span>🖨</span>
-                  <span>Imprimir PDF</span>
-                </button>
-              </div>
             </div>
           </div>
 
@@ -1134,25 +1005,6 @@
           </table>
         </div>
       </div>
-    </div>
-
-    <!-- ============================================
-         CABECERA PDF (oculta en web)
-         ============================================ -->
-    <div id="pdfHeader" class="pdf-header" style="display: none;">
-      <div class="pdf-logo-row">
-        <div class="pdf-logo-brand">
-          <img class="pdf-logo-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXIAAACwCAYAAAASc+UCAAAQAElEQVR4AexdB2AURdt+9/qlXkJCS0IaEJoQUBFsBLFgJYq9Af5YPv3UYPnsEuyd2BULwS6CBLFgg4BSpEnonQTSIAmkJ9f3f5+5bLgklwahiHvJczs7fd6deeadd3b3NKR+VAn8QyRQWFgYk1ucm6RgyrNT3nrxlRfTG+OOO+/IuGXiLTmN8dKrL/3VOC7O5/04Ly2vKG+8ki+O2aXZln+IWNRqqhIglcjVTnBcSEAh6aUrlj4CcgXpgohvu/O2vcNPHy4Do84dlR0VHrVQweTHJt/10AMPjWuM9955b8zHH34c3Rj/u/9/QxvHxfmlF116b2TnyOlKvlePuXrh9RdfX3rB6Avk+x68T0Y9pn8yPeud996Zn78vP1UhfZXsj4uuo1aCJaASOQtB/T96EoC2CyKEFjz1jakbQNQgzCvGXiFI+vShpz8HcgXpgoinvTOty7KlywgIDg4mJvQGYKKlQwGX2SAf5BsYFCgEgbKAn+f/TK+9/BqhHhNunjDozjvuvCCiS8Tkvj37TgfZ/++O/5Vy2TJI/vc/fv8FJF+wryCZ25coMlK/GkpAPTtiElCJ/IiJVs0YpF1QXJDy68JfZ771zlvZE2+bKIMAof1CC550z6T+P373Y5eKigoKCgqqJ+RZc2YR8MuCXyi/KL8eszJm0axGuP/B++lQ8PEnHzfJa8uOLfVlbd6+WdQB9fhoxkf1dcMEMGDAAMrdk0vffP2NIHqQ/KizRp0Hkh97+dg5qY+nruFJSp4zb84qJnVhtuGjSu7qkDhiElCJ/IiJ9t+VMcwMddpoGggs9elUeeJNExcOHTx06nkjzxv7+Wefx5SXl9PwM4YLglRI+q+//xKECmJVCBlxgP4D+h8zIQYFB4m6oh6jLxxdP1mgnphMUG9MMstXLxft4fYKsseEtHTJUuJJii6/9PKTWXu/96rkq6azZr/m69lfVzGhZ0JzxyR3zBqnFnzCSUAl8hPukh69BoGMmJjS1m9bv37BdwtK773n3jlMWve+9/Z7J0PLvvX2W2nW3FlCywX5pb2ZJggR5NgRJO1yusjpcHYIkJdHcu37joqKEoSPtmIiAtHzCkS0GSQ/fcZ0Eb5x/Uaa8uQUf16NjLjy8isnT31p6kLW9mWWnyB2Pqoae/tEr8b2koBK5F7CUJ0tSwAbkjCV5BfnZ7A2Ks/6ctbCD9//8N7XX3l9AFLe/7/7CYQNMgOpgbBBdCDq" alt="Galisur" />
-          <div>
-            <div class="pdf-logo-main">ALUMINIOS GALISUR</div>
-            <div class="pdf-logo-sub">Presupuesto pérgola bioclimática · Doha Sun</div>
-          </div>
-        </div>
-        <div class="pdf-logo-right">
-          <div id="pdfFecha"></div>
-        </div>
-      </div>
-      <hr class="pdf-separator" />
     </div>
 
     <!-- ============================================

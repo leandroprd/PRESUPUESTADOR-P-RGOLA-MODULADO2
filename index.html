@@ -547,6 +547,99 @@
     }
 
     /* ============================================
+       INFORMES ECONÓMICOS - ANCHO COMPLETO
+       ============================================ */
+    .informes-fullwidth {
+      max-width: 1200px;
+      margin: 2rem auto 0;
+      padding: 0 1.5rem;
+      animation: slideUpFade 0.5s ease-out;
+    }
+
+    @media (max-width: 960px) {
+      .informes-fullwidth {
+        padding: 0 0.9rem;
+      }
+    }
+
+    /* Animación de entrada suave */
+    @keyframes slideUpFade {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Header sticky del selector de documentos */
+    .informes-sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--card-bg);
+      padding: 1rem 1.25rem 0.75rem;
+      margin: -1.1rem -1.25rem 0.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    /* Optimización de tablas para ancho completo */
+    .informes-fullwidth table {
+      font-size: 0.85rem;
+      table-layout: auto;
+    }
+
+    .informes-fullwidth th {
+      font-size: 0.75rem;
+      padding: 0.5rem 0.6rem;
+      white-space: nowrap;
+    }
+
+    .informes-fullwidth td {
+      padding: 0.5rem 0.6rem;
+    }
+
+    /* Ajuste específico para el informe de material (9 columnas) */
+    #doc-material table th:nth-child(3),
+    #doc-material table td:nth-child(3) {
+      min-width: 200px; /* Descripción más ancha */
+    }
+
+    #doc-material table th:nth-child(6),
+    #doc-material table td:nth-child(6) {
+      text-align: center; /* Long. barra centrada */
+    }
+
+    #doc-material table th:nth-child(7),
+    #doc-material table td:nth-child(7) {
+      text-align: center; /* Nº barras centrada */
+    }
+
+    #doc-material table th:nth-child(8),
+    #doc-material table td:nth-child(8),
+    #doc-material table th:nth-child(9),
+    #doc-material table td:nth-child(9) {
+      text-align: right; /* Precios alineados a derecha */
+    }
+
+    /* Totales destacados */
+    .informes-fullwidth .summary-block {
+      margin-top: 1rem;
+      padding: 0.8rem 1rem;
+      background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .informes-fullwidth .summary-block strong {
+      font-size: 1.05rem;
+      color: var(--blue-dark);
+    }
+
+    /* ============================================
        MEDIA QUERIES PARA IMPRESIÓN
        ============================================ */
     @media print {
@@ -921,9 +1014,22 @@
           </div>
         </section>
 
-        <!-- TARJETA 6: Informes económicos -->
-        <section class="card solo-web" id="informesCard" style="margin-top: 0.9rem;">
-          <div class="card-header">
+        <!-- Tabla de materiales oculta (para uso interno) -->
+        <div style="display: none;">
+          <table>
+            <tbody id="tablaMateriales"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================
+         TARJETA 6: INFORMES ECONÓMICOS (ANCHO COMPLETO)
+         ============================================ -->
+    <div class="informes-fullwidth">
+      <section class="card solo-web" id="informesCard">
+        <div class="informes-sticky-header">
+          <div class="card-header" style="margin-bottom: 0;">
             <div class="card-title">
               <span class="step-badge">6</span>
               Informes económicos
@@ -931,7 +1037,7 @@
             <span class="pill">Informes</span>
           </div>
 
-          <div class="note" style="margin-bottom: 0.75rem;">
+          <div class="note" style="margin-top: 0.75rem; margin-bottom: 0;">
             <div class="note-icon">📄</div>
             <div style="display: flex; flex-direction: column; gap: 0.35rem;">
               <label style="font-weight: 600; color: var(--text-soft);">
@@ -944,9 +1050,10 @@
               </label>
             </div>
           </div>
+        </div>
 
-          <!-- Contenedores de documentos -->
-          <div class="documento-preview">
+        <!-- Contenedores de documentos -->
+        <div class="documento-preview">
             <!-- Informe de Material -->
             <div id="doc-material" class="documento-pdf">
               <h2 style="margin: 0 0 0.5rem;">Informe de material</h2>
@@ -997,13 +1104,6 @@
             </div>
           </div>
         </section>
-
-        <!-- Tabla de materiales oculta (para uso interno) -->
-        <div style="display: none;">
-          <table>
-            <tbody id="tablaMateriales"></tbody>
-          </table>
-        </div>
       </div>
     </div>
 

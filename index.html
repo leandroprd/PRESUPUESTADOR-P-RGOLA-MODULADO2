@@ -643,17 +643,16 @@
        DOCUMENTOS PDF OCULTOS
        ============================================ */
     .pdf-document-hidden {
-      position: fixed;
-      left: 0;
+      position: absolute;
+      left: -10000px;
       top: 0;
       width: 794px;
       background: white;
       padding: 24px;
       box-sizing: border-box;
-      opacity: 0;
-      pointer-events: none;
-      z-index: -9999;
       font-family: "Calibri", "Segoe UI", system-ui, -apple-system, sans-serif;
+      visibility: visible;
+      opacity: 1;
     }
 
     .pdf-page {
@@ -1510,7 +1509,7 @@
          FOOTER
          ============================================ -->
     <footer>
-      Aluminios Galisur · Presupuestador interno serie Doha Sun.Prueba 2.
+      Aluminios Galisur · Presupuestador interno serie Doha Sun. prueba
     </footer>
   </div>
 

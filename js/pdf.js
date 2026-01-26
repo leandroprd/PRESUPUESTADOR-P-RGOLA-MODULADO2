@@ -383,44 +383,62 @@ function exportarAPdf(elemento, nombreArchivo) {
   }
 
   console.log('🚀 Generando PDF...');
+  console.log('📊 Contenido del elemento:', elemento.innerHTML.substring(0, 200));
 
-  const originalOpacity = elemento.style.opacity;
-  const originalZIndex = elemento.style.zIndex;
+  // Guardar posición original
+  const originalLeft = elemento.style.left;
+  const originalPosition = elemento.style.position;
   
-  elemento.style.opacity = '1';
+  // Mover temporalmente a posición visible
+  elemento.style.position = 'fixed';
+  elemento.style.left = '0';
+  elemento.style.top = '0';
   elemento.style.zIndex = '9999';
 
-  const opt = {
-    margin: 10,
-    filename: nombreArchivo,
-    image: { type: 'jpeg', quality: 0.95 },
-    html2canvas: { 
-      scale: 2,
-      useCORS: true,
-      logging: false
-    },
-    jsPDF: { 
-      unit: 'mm',
-      format: 'a4',
-      orientation: 'portrait'
-    }
-  };
+  console.log('✅ Contenedor movido a posición visible');
 
-  html2pdf()
-    .from(elemento)
-    .set(opt)
-    .save()
-    .then(() => {
-      console.log('✅ PDF generado correctamente:', nombreArchivo);
-      elemento.style.opacity = originalOpacity;
-      elemento.style.zIndex = originalZIndex;
-    })
-    .catch(error => {
-      console.error('❌ Error al generar PDF:', error);
-      alert('Error al generar el PDF. Revisa la consola para más detalles.');
-      elemento.style.opacity = originalOpacity;
-      elemento.style.zIndex = originalZIndex;
-    });
+  // Esperar un momento para que el navegador renderice
+  setTimeout(() => {
+    const opt = {
+      margin: 10,
+      filename: nombreArchivo,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { 
+        scale: 2,
+        useCORS: true,
+        logging: true,
+        width: 794,
+        windowWidth: 794
+      },
+      jsPDF: { 
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait'
+      }
+    };
+
+    console.log('📸 Capturando con html2canvas...');
+
+    html2pdf()
+      .from(elemento)
+      .set(opt)
+      .save()
+      .then(() => {
+        console.log('✅ PDF generado correctamente:', nombreArchivo);
+        // Restaurar posición original
+        elemento.style.position = originalPosition;
+        elemento.style.left = originalLeft;
+        elemento.style.zIndex = '';
+      })
+      .catch(error => {
+        console.error('❌ Error al generar PDF:', error);
+        alert('Error al generar el PDF. Revisa la consola para más detalles.');
+        // Restaurar posición original
+        elemento.style.position = originalPosition;
+        elemento.style.left = originalLeft;
+        elemento.style.zIndex = '';
+      });
+  }, 100); // Esperar 100ms para que el DOM se actualice
 }
 
 function generarPdfYCompartir(elemento, nombreArchivo, tipo) {
@@ -432,51 +450,65 @@ function generarPdfYCompartir(elemento, nombreArchivo, tipo) {
 
   console.log('🚀 Generando PDF para compartir...');
 
-  const originalOpacity = elemento.style.opacity;
-  const originalZIndex = elemento.style.zIndex;
+  // Guardar posición original
+  const originalLeft = elemento.style.left;
+  const originalPosition = elemento.style.position;
   
-  elemento.style.opacity = '1';
+  // Mover temporalmente a posición visible
+  elemento.style.position = 'fixed';
+  elemento.style.left = '0';
+  elemento.style.top = '0';
   elemento.style.zIndex = '9999';
 
-  const opt = {
-    margin: 10,
-    filename: nombreArchivo,
-    image: { type: 'jpeg', quality: 0.95 },
-    html2canvas: { 
-      scale: 2,
-      useCORS: true,
-      logging: false
-    },
-    jsPDF: { 
-      unit: 'mm',
-      format: 'a4',
-      orientation: 'portrait'
-    }
-  };
+  // Esperar un momento para que el navegador renderice
+  setTimeout(() => {
+    const opt = {
+      margin: 10,
+      filename: nombreArchivo,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { 
+        scale: 2,
+        useCORS: true,
+        logging: true,
+        width: 794,
+        windowWidth: 794
+      },
+      jsPDF: { 
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait'
+      }
+    };
 
-  html2pdf()
-    .from(elemento)
-    .set(opt)
-    .save()
-    .then(() => {
-      console.log('✅ PDF generado, abriendo WhatsApp...');
-      
-      elemento.style.opacity = originalOpacity;
-      elemento.style.zIndex = originalZIndex;
+    html2pdf()
+      .from(elemento)
+      .set(opt)
+      .save()
+      .then(() => {
+        console.log('✅ PDF generado, abriendo WhatsApp...');
+        
+        // Restaurar posición
+        elemento.style.position = originalPosition;
+        elemento.style.left = originalLeft;
+        elemento.style.zIndex = '';
 
-      let tipoTexto = 'Presupuesto';
-      if (tipo === 'corte') tipoTexto = 'Hoja de corte';
-      if (tipo === 'peso') tipoTexto = 'Peso y perímetros';
+        let tipoTexto = 'Presupuesto';
+        if (tipo === 'corte') tipoTexto = 'Hoja de corte';
+        if (tipo === 'peso') tipoTexto = 'Peso y perímetros';
 
-      const mensaje = `${tipoTexto} - Pérgola Bioclimática DOHA SUN\n\nAdjunto encontrarás el documento ${nombreArchivo}`;
-      const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+        const mensaje = `${tipoTexto} - Pérgola Bioclimática DOHA SUN\n\nAdjunto encontrarás el documento ${nombreArchivo}`;
+        const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
 
-      window.open(url, '_blank');
-    })
-    .catch(error => {
-      console.error('❌ Error al generar PDF:', error);
-      alert('Error al generar el PDF. Revisa la consola para más detalles.');
-      elemento.style.opacity = originalOpacity;
-      elemento.style.zIndex = originalZIndex;
-    });
+        window.open(url, '_blank');
+      })
+      .catch(error => {
+        console.error('❌ Error al generar PDF:', error);
+        alert('Error al generar el PDF. Revisa la consola para más detalles.');
+        
+        // Restaurar posición
+        elemento.style.position = originalPosition;
+        elemento.style.left = originalLeft;
+        elemento.style.zIndex = '';
+      });
+  }, 100);
 }

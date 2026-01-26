@@ -640,15 +640,32 @@
     }
 
     /* ============================================
-       ESTILOS PARA DOCUMENTOS PDF
+       DOCUMENTOS PDF OCULTOS
        ============================================ */
-    
-    /* Contenedor PDF (oculto, generado dinámicamente) */
-    #pdfRootContainer {
+    .pdf-document-hidden {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 794px;
+      background: white;
+      padding: 24px;
+      box-sizing: border-box;
+      opacity: 0;
+      pointer-events: none;
+      z-index: -9999;
       font-family: "Calibri", "Segoe UI", system-ui, -apple-system, sans-serif;
     }
 
-    /* Cabecera corporativa PDF */
+    .pdf-page {
+      width: 100%;
+      min-height: 1123px;
+    }
+
+    /* ============================================
+       ESTILOS PARA DOCUMENTOS PDF
+       ============================================ */
+    
+    /* Cabecera */
     .pdf-header {
       display: flex;
       justify-content: space-between;
@@ -702,7 +719,7 @@
       margin: 4px 0 14px 0;
     }
 
-    /* Secciones PDF */
+    /* Secciones */
     .pdf-section {
       margin-bottom: 14px;
     }
@@ -767,6 +784,7 @@
       padding-left: 18px;
       font-size: 10px;
       color: #374151;
+      list-style-type: disc;
     }
 
     .pdf-resumen-list li {
@@ -783,7 +801,7 @@
       justify-content: center;
     }
 
-    /* Tablas PDF */
+    /* Tablas */
     .pdf-table {
       width: 100%;
       border-collapse: collapse;
@@ -795,12 +813,12 @@
     .pdf-table td {
       border: 1px solid #e5e7eb;
       padding: 4px 6px;
+      text-align: left;
     }
 
     .pdf-table th {
       background: #f3f4f6;
       font-weight: 600;
-      text-align: left;
     }
 
     .pdf-totales {
@@ -1230,9 +1248,14 @@
                   <option value="corte">Hoja de corte</option>
                 </select>
               </label>
-              <button class="primary" id="btnGenerarPDF" type="button" style="margin-top: 0.5rem;">
-                📄 Generar PDF
-              </button>
+              <div class="btn-row" style="margin-top: 0.5rem;">
+                <button class="secondary" id="btnDescargarPDF" type="button">
+                  📥 Descargar PDF
+                </button>
+                <button class="primary" id="btnCompartirWhatsApp" type="button">
+                  📤 Compartir WhatsApp
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1293,10 +1316,201 @@
     </div>
 
     <!-- ============================================
+         DOCUMENTOS PDF OCULTOS (se rellenan en tiempo real)
+         ============================================ -->
+    
+    <!-- DOCUMENTO 1: PRESUPUESTO -->
+    <div id="pdf-presupuesto" class="pdf-document-hidden">
+      <div class="pdf-page">
+        <!-- Cabecera corporativa -->
+        <header class="pdf-header">
+          <div class="pdf-header-left">
+            <div class="pdf-header-text">
+              <div class="pdf-empresa">ALUMINIOS GALISUR</div>
+              <div class="pdf-subtitulo">PRESUPUESTO PÉRGOLA BIOCLIMÁTICA · DOHA SUN</div>
+            </div>
+          </div>
+          <div class="pdf-header-right">
+            <div class="pdf-fecha" id="pdf-presupuesto-fecha"></div>
+          </div>
+        </header>
+
+        <hr class="pdf-divider">
+
+        <!-- Datos de obra -->
+        <section class="pdf-section pdf-datos-obra">
+          <div class="pdf-resumen-header">
+            <div>
+              <h1 class="pdf-section-title">Datos de la obra</h1>
+              <div class="pdf-ref">
+                Ref. presupuesto: <span class="pdf-ref-code" id="pdf-presupuesto-codigo"></span>
+              </div>
+            </div>
+            <div class="pdf-pill">PRESUPUESTO</div>
+          </div>
+
+          <div class="pdf-resumen-meta">
+            <div><strong>Comercial:</strong> <span id="pdf-presupuesto-comercial"></span></div>
+            <div><strong>Cliente:</strong> <span id="pdf-presupuesto-cliente"></span></div>
+            <div><strong>Ref. obra:</strong> <span id="pdf-presupuesto-refobra"></span></div>
+          </div>
+
+          <div class="pdf-resumen-card">
+            <div class="pdf-resumen-card-title">Configuración principal</div>
+            <ul class="pdf-resumen-list" id="pdf-presupuesto-config"></ul>
+          </div>
+        </section>
+
+        <!-- Vista esquemática -->
+        <section class="pdf-section pdf-esquema">
+          <h2 class="pdf-section-title">Vista esquemática</h2>
+          <div class="pdf-imagen-wrapper" id="pdf-presupuesto-svg"></div>
+        </section>
+
+        <!-- Tabla de materiales -->
+        <section class="pdf-section pdf-presupuesto-tabla">
+          <h2 class="pdf-section-title">Detalle de materiales</h2>
+          <table class="pdf-table">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Ref.</th>
+                <th>Descripción</th>
+                <th>Acabado</th>
+                <th style="text-align:right;">Long. barra</th>
+                <th style="text-align:right;">Nº barras/uds</th>
+                <th style="text-align:right;">Precio unit.</th>
+                <th style="text-align:right;">Importe</th>
+              </tr>
+            </thead>
+            <tbody id="pdf-presupuesto-tabla-body"></tbody>
+          </table>
+
+          <!-- Totales -->
+          <div class="pdf-totales" id="pdf-presupuesto-totales"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- DOCUMENTO 2: HOJA DE CORTE -->
+    <div id="pdf-hoja-corte" class="pdf-document-hidden">
+      <div class="pdf-page">
+        <!-- Cabecera corporativa -->
+        <header class="pdf-header">
+          <div class="pdf-header-left">
+            <div class="pdf-header-text">
+              <div class="pdf-empresa">ALUMINIOS GALISUR</div>
+              <div class="pdf-subtitulo">HOJA DE CORTE · FABRICACIÓN · DOHA SUN</div>
+            </div>
+          </div>
+          <div class="pdf-header-right">
+            <div class="pdf-fecha" id="pdf-corte-fecha"></div>
+          </div>
+        </header>
+
+        <hr class="pdf-divider">
+
+        <!-- Datos de obra -->
+        <section class="pdf-section pdf-datos-obra">
+          <div class="pdf-resumen-header">
+            <div>
+              <h1 class="pdf-section-title">Datos de la obra</h1>
+              <div class="pdf-ref">
+                Ref. presupuesto: <span class="pdf-ref-code" id="pdf-corte-codigo"></span>
+              </div>
+            </div>
+            <div class="pdf-pill">CORTE</div>
+          </div>
+
+          <div class="pdf-resumen-meta">
+            <div><strong>Comercial:</strong> <span id="pdf-corte-comercial"></span></div>
+            <div><strong>Cliente:</strong> <span id="pdf-corte-cliente"></span></div>
+            <div><strong>Ref. obra:</strong> <span id="pdf-corte-refobra"></span></div>
+          </div>
+
+          <div class="pdf-resumen-card">
+            <div class="pdf-resumen-card-title">Configuración principal</div>
+            <ul class="pdf-resumen-list" id="pdf-corte-config"></ul>
+          </div>
+        </section>
+
+        <!-- Patrones de corte -->
+        <section class="pdf-section pdf-hoja-corte">
+          <h2 class="pdf-section-title">Patrones de corte por perfil</h2>
+          <div id="pdf-corte-patrones"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- DOCUMENTO 3: PESO Y PERÍMETROS -->
+    <div id="pdf-peso-perimetros" class="pdf-document-hidden">
+      <div class="pdf-page">
+        <!-- Cabecera corporativa -->
+        <header class="pdf-header">
+          <div class="pdf-header-left">
+            <div class="pdf-header-text">
+              <div class="pdf-empresa">ALUMINIOS GALISUR</div>
+              <div class="pdf-subtitulo">PESO Y PERÍMETROS · DOCUMENTO TÉCNICO · DOHA SUN</div>
+            </div>
+          </div>
+          <div class="pdf-header-right">
+            <div class="pdf-fecha" id="pdf-peso-fecha"></div>
+          </div>
+        </header>
+
+        <hr class="pdf-divider">
+
+        <!-- Datos de obra -->
+        <section class="pdf-section pdf-datos-obra">
+          <div class="pdf-resumen-header">
+            <div>
+              <h1 class="pdf-section-title">Datos de la obra</h1>
+              <div class="pdf-ref">
+                Ref. presupuesto: <span class="pdf-ref-code" id="pdf-peso-codigo"></span>
+              </div>
+            </div>
+            <div class="pdf-pill">PESO</div>
+          </div>
+
+          <div class="pdf-resumen-meta">
+            <div><strong>Comercial:</strong> <span id="pdf-peso-comercial"></span></div>
+            <div><strong>Cliente:</strong> <span id="pdf-peso-cliente"></span></div>
+            <div><strong>Ref. obra:</strong> <span id="pdf-peso-refobra"></span></div>
+          </div>
+
+          <div class="pdf-resumen-card">
+            <div class="pdf-resumen-card-title">Configuración principal</div>
+            <ul class="pdf-resumen-list" id="pdf-peso-config"></ul>
+          </div>
+        </section>
+
+        <!-- Tabla de peso y perímetros -->
+        <section class="pdf-section pdf-peso-perimetros">
+          <h2 class="pdf-section-title">Peso y perímetros por perfil</h2>
+          <table class="pdf-table">
+            <thead>
+              <tr>
+                <th>Ref.</th>
+                <th>Descripción</th>
+                <th>Acabado</th>
+                <th style="text-align:right;">Peso total (kg)</th>
+                <th style="text-align:right;">Perímetro total (mm)</th>
+              </tr>
+            </thead>
+            <tbody id="pdf-peso-tabla-body"></tbody>
+          </table>
+
+          <!-- Totales -->
+          <div class="pdf-totales" id="pdf-peso-totales"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ============================================
          FOOTER
          ============================================ -->
     <footer>
-      Aluminios Galisur · Presupuestador interno serie Doha Sun.
+      Aluminios Galisur · Presupuestador interno serie Doha Sun. Prueba 1
     </footer>
   </div>
 

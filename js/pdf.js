@@ -1,8 +1,7 @@
 /**
- * MÓDULO DE EXPORTACIÓN DE PDFs - VERSIÓN AUTOMÁTICA
+ * MÓDULO DE EXPORTACIÓN DE PDFs CON VISTA PREVIA
  * =================================================================
- * Esta versión rellena automáticamente los documentos antes de exportar
- * No requiere integración manual en otros archivos
+ * Sistema con modal de vista previa y exportación usando html2pdf 0.9.3
  */
 
 import { 
@@ -16,52 +15,126 @@ import {
   precioFormatearEuro
 } from './utils.js';
 
+// Variables globales
+let modalAbierto = false;
+let tipoDocumentoActual = 'material';
+
 // ============================================================================
 // FUNCIÓN DE INICIALIZACIÓN
 // ============================================================================
 
 export function inicializarSistemaPDF() {
-  const btnDescargar = document.getElementById('btnDescargarPDF');
+  const btnVistaPrevia = document.getElementById('btnVistaPreviaPDF');
   const btnWhatsApp = document.getElementById('btnCompartirWhatsApp');
+  const btnCerrarModal = document.getElementById('btnCerrarModal');
+  const btnCerrarModalFooter = document.getElementById('btnCerrarModalFooter');
+  const btnDescargarDesdeModal = document.getElementById('btnDescargarDesdeLmodal');
 
-  if (btnDescargar) {
-    btnDescargar.addEventListener('click', descargarPDF);
+  if (btnVistaPrevia) {
+    btnVistaPrevia.addEventListener('click', abrirVistaPreviaPDF);
   }
 
   if (btnWhatsApp) {
     btnWhatsApp.addEventListener('click', compartirWhatsApp);
   }
 
+  if (btnCerrarModal) {
+    btnCerrarModal.addEventListener('click', cerrarModal);
+  }
+
+  if (btnCerrarModalFooter) {
+    btnCerrarModalFooter.addEventListener('click', cerrarModal);
+  }
+
+  if (btnDescargarDesdeModal) {
+    btnDescargarDesdeModal.addEventListener('click', descargarPDFDesdeModal);
+  }
+
+  // Cerrar modal al hacer clic en el overlay
+  const overlay = document.querySelector('.pdf-modal-overlay');
+  if (overlay) {
+    overlay.addEventListener('click', cerrarModal);
+  }
+
   console.log('✅ Sistema PDF inicializado correctamente');
 }
 
 // ============================================================================
-// FUNCIONES PRINCIPALES
+// FUNCIONES DEL MODAL
 // ============================================================================
 
-export function descargarPDF() {
-  console.log('📥 Iniciando descarga de PDF...');
+/**
+ * Abre el modal de vista previa con el documento seleccionado
+ */
+export function abrirVistaPreviaPDF() {
+  console.log('👁️ Abriendo vista previa...');
 
-  // 1. Rellenar documento antes de exportar
+  // 1. Obtener tipo de documento
   const tipo = obtenerTipoDocumento();
+  tipoDocumentoActual = tipo;
+
+  // 2. Rellenar documento
   if (!rellenarDocumentoPDF(tipo)) {
     alert('No hay datos calculados. Por favor, calcula primero la configuración.');
     return;
   }
 
-  // 2. Obtener contenedor
-  const contenedor = obtenerContenedorPDF(tipo);
-  if (!contenedor) {
+  // 3. Clonar contenido al modal
+  const contenedorOriginal = obtenerContenedorPDF(tipo);
+  if (!contenedorOriginal) {
     alert('Error: No se pudo obtener el contenedor del documento.');
     return;
   }
 
-  // 3. Exportar
-  const nombreArchivo = generarNombreArchivo(tipo);
-  console.log('📄 Nombre archivo:', nombreArchivo);
-  exportarAPdf(contenedor, nombreArchivo);
+  const modalContent = document.getElementById('pdfPreviewContent');
+  if (!modalContent) {
+    console.error('❌ No se encuentra el contenedor del modal');
+    return;
+  }
+
+  // Clonar el contenido
+  modalContent.innerHTML = contenedorOriginal.innerHTML;
+
+  // 4. Mostrar modal
+  const modal = document.getElementById('pdfPreviewModal');
+  if (modal) {
+    modal.style.display = 'block';
+    modalAbierto = true;
+    console.log('✅ Modal abierto con vista previa');
+  }
 }
 
+/**
+ * Cierra el modal de vista previa
+ */
+export function cerrarModal() {
+  const modal = document.getElementById('pdfPreviewModal');
+  if (modal) {
+    modal.style.display = 'none';
+    modalAbierto = false;
+    console.log('✅ Modal cerrado');
+  }
+}
+
+/**
+ * Descarga el PDF desde el modal
+ */
+export function descargarPDFDesdeModal() {
+  console.log('📥 Descargando PDF desde modal...');
+
+  const modalContent = document.getElementById('pdfPreviewContent');
+  if (!modalContent) {
+    alert('Error: No se encuentra el contenido del modal.');
+    return;
+  }
+
+  const nombreArchivo = generarNombreArchivo(tipoDocumentoActual);
+  exportarAPdf(modalContent, nombreArchivo);
+}
+
+/**
+ * Comparte el documento por WhatsApp
+ */
 export function compartirWhatsApp() {
   console.log('📤 Compartiendo por WhatsApp...');
 
@@ -90,8 +163,6 @@ export function compartirWhatsApp() {
 
 /**
  * Rellena el documento PDF seleccionado con todos los datos actuales
- * @param {string} tipo - Tipo de documento (material/corte/peso)
- * @returns {boolean} True si se rellenó correctamente
  */
 function rellenarDocumentoPDF(tipo) {
   console.log('🔄 Rellenando documento:', tipo);
@@ -133,15 +204,22 @@ function rellenarDatosComunes(tipo, datos) {
   const prefijo = tipo === 'material' ? 'presupuesto' : tipo === 'corte' ? 'corte' : 'peso';
   
   // Fecha
-  document.getElementById(`pdf-${prefijo}-fecha`).textContent = datos.fecha;
+  const fechaElement = document.getElementById(`pdf-${prefijo}-fecha`);
+  if (fechaElement) fechaElement.textContent = datos.fecha;
   
   // Código
-  document.getElementById(`pdf-${prefijo}-codigo`).textContent = datos.codigoPresupuesto;
+  const codigoElement = document.getElementById(`pdf-${prefijo}-codigo`);
+  if (codigoElement) codigoElement.textContent = datos.codigoPresupuesto;
   
   // Cabecera
-  document.getElementById(`pdf-${prefijo}-comercial`).textContent = datos.comercial || '—';
-  document.getElementById(`pdf-${prefijo}-cliente`).textContent = datos.cliente || '—';
-  document.getElementById(`pdf-${prefijo}-refobra`).textContent = datos.refObra || '—';
+  const comercialElement = document.getElementById(`pdf-${prefijo}-comercial`);
+  if (comercialElement) comercialElement.textContent = datos.comercial || '—';
+  
+  const clienteElement = document.getElementById(`pdf-${prefijo}-cliente`);
+  if (clienteElement) clienteElement.textContent = datos.cliente || '—';
+  
+  const refObraElement = document.getElementById(`pdf-${prefijo}-refobra`);
+  if (refObraElement) refObraElement.textContent = datos.refObra || '—';
   
   // Configuración
   const configHtml = `
@@ -153,7 +231,9 @@ function rellenarDatosComunes(tipo, datos) {
     <li><strong>Número de lamas:</strong> ${datos.numLamas}</li>
     <li><strong>Mando:</strong> ${datos.mandoTexto}</li>
   `;
-  document.getElementById(`pdf-${prefijo}-config`).innerHTML = configHtml;
+  
+  const configElement = document.getElementById(`pdf-${prefijo}-config`);
+  if (configElement) configElement.innerHTML = configHtml;
 }
 
 /**
@@ -375,6 +455,10 @@ function generarTimestamp() {
   return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
 }
 
+// ============================================================================
+// EXPORTACIÓN A PDF (html2pdf 0.9.3)
+// ============================================================================
+
 function exportarAPdf(elemento, nombreArchivo) {
   if (typeof html2pdf === 'undefined') {
     console.error('❌ html2pdf no está cargado');
@@ -382,63 +466,27 @@ function exportarAPdf(elemento, nombreArchivo) {
     return;
   }
 
-  console.log('🚀 Generando PDF...');
-  console.log('📊 Contenido del elemento:', elemento.innerHTML.substring(0, 200));
+  console.log('🚀 Generando PDF con html2pdf 0.9.3...');
 
-  // Guardar posición original
-  const originalLeft = elemento.style.left;
-  const originalPosition = elemento.style.position;
-  
-  // Mover temporalmente a posición visible
-  elemento.style.position = 'fixed';
-  elemento.style.left = '0';
-  elemento.style.top = '0';
-  elemento.style.zIndex = '9999';
+  const opt = {
+    margin: 0,
+    filename: nombreArchivo,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
+  };
 
-  console.log('✅ Contenedor movido a posición visible');
-
-  // Esperar un momento para que el navegador renderice
-  setTimeout(() => {
-    const opt = {
-      margin: 10,
-      filename: nombreArchivo,
-      image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { 
-        scale: 2,
-        useCORS: true,
-        logging: true,
-        width: 794,
-        windowWidth: 794
-      },
-      jsPDF: { 
-        unit: 'mm',
-        format: 'a4',
-        orientation: 'portrait'
-      }
-    };
-
-    console.log('📸 Capturando con html2canvas...');
-
-    html2pdf()
-      .from(elemento)
-      .set(opt)
-      .save()
-      .then(() => {
-        console.log('✅ PDF generado correctamente:', nombreArchivo);
-        // Restaurar posición original
-        elemento.style.position = originalPosition;
-        elemento.style.left = originalLeft;
-        elemento.style.zIndex = '';
-      })
-      .catch(error => {
-        console.error('❌ Error al generar PDF:', error);
-        alert('Error al generar el PDF. Revisa la consola para más detalles.');
-        // Restaurar posición original
-        elemento.style.position = originalPosition;
-        elemento.style.left = originalLeft;
-        elemento.style.zIndex = '';
-      });
-  }, 100); // Esperar 100ms para que el DOM se actualice
+  html2pdf()
+    .set(opt)
+    .from(elemento)
+    .save()
+    .then(() => {
+      console.log('✅ PDF generado correctamente:', nombreArchivo);
+    })
+    .catch(error => {
+      console.error('❌ Error al generar PDF:', error);
+      alert('Error al generar el PDF. Revisa la consola para más detalles.');
+    });
 }
 
 function generarPdfYCompartir(elemento, nombreArchivo, tipo) {
@@ -450,65 +498,32 @@ function generarPdfYCompartir(elemento, nombreArchivo, tipo) {
 
   console.log('🚀 Generando PDF para compartir...');
 
-  // Guardar posición original
-  const originalLeft = elemento.style.left;
-  const originalPosition = elemento.style.position;
-  
-  // Mover temporalmente a posición visible
-  elemento.style.position = 'fixed';
-  elemento.style.left = '0';
-  elemento.style.top = '0';
-  elemento.style.zIndex = '9999';
+  const opt = {
+    margin: 0,
+    filename: nombreArchivo,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
+  };
 
-  // Esperar un momento para que el navegador renderice
-  setTimeout(() => {
-    const opt = {
-      margin: 10,
-      filename: nombreArchivo,
-      image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { 
-        scale: 2,
-        useCORS: true,
-        logging: true,
-        width: 794,
-        windowWidth: 794
-      },
-      jsPDF: { 
-        unit: 'mm',
-        format: 'a4',
-        orientation: 'portrait'
-      }
-    };
+  html2pdf()
+    .set(opt)
+    .from(elemento)
+    .save()
+    .then(() => {
+      console.log('✅ PDF generado, abriendo WhatsApp...');
 
-    html2pdf()
-      .from(elemento)
-      .set(opt)
-      .save()
-      .then(() => {
-        console.log('✅ PDF generado, abriendo WhatsApp...');
-        
-        // Restaurar posición
-        elemento.style.position = originalPosition;
-        elemento.style.left = originalLeft;
-        elemento.style.zIndex = '';
+      let tipoTexto = 'Presupuesto';
+      if (tipo === 'corte') tipoTexto = 'Hoja de corte';
+      if (tipo === 'peso') tipoTexto = 'Peso y perímetros';
 
-        let tipoTexto = 'Presupuesto';
-        if (tipo === 'corte') tipoTexto = 'Hoja de corte';
-        if (tipo === 'peso') tipoTexto = 'Peso y perímetros';
+      const mensaje = `${tipoTexto} - Pérgola Bioclimática DOHA SUN\n\nAdjunto encontrarás el documento ${nombreArchivo}`;
+      const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
 
-        const mensaje = `${tipoTexto} - Pérgola Bioclimática DOHA SUN\n\nAdjunto encontrarás el documento ${nombreArchivo}`;
-        const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
-
-        window.open(url, '_blank');
-      })
-      .catch(error => {
-        console.error('❌ Error al generar PDF:', error);
-        alert('Error al generar el PDF. Revisa la consola para más detalles.');
-        
-        // Restaurar posición
-        elemento.style.position = originalPosition;
-        elemento.style.left = originalLeft;
-        elemento.style.zIndex = '';
-      });
-  }, 100);
+      window.open(url, '_blank');
+    })
+    .catch(error => {
+      console.error('❌ Error al generar PDF:', error);
+      alert('Error al generar el PDF. Revisa la consola para más detalles.');
+    });
 }

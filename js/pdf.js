@@ -299,63 +299,65 @@ function generarPaginaSiguientePresupuesto(filas, datos, numPagina, esUltima, to
 // ============================================================================
 
 /**
- * Genera la cabecera repetible
+ * Genera la cabecera repetible con formato del PDF de referencia
  */
 function generarCabecera(datos, numPagina, titulo) {
   const logoHTML = logoBase64 
-    ? `<img src="${logoBase64}" class="pdf-logo-img" alt="Logo Galisur" />`
-    : '<div class="pdf-logo-placeholder">GALISUR</div>';
+    ? `<img src="${logoBase64}" class="pdf-logo-ref" alt="Logo Galisur" />`
+    : '<div class="pdf-logo-ref-placeholder"></div>';
+
+  const fechaFormateada = datos.fecha || '';
 
   return `
-    <header class="pdf-header-a4">
-      <div class="pdf-header-izq">
-        ${logoHTML}
-      </div>
-      <div class="pdf-header-centro">
-        <h1 class="pdf-titulo-principal">ALUMINIOS GALISUR</h1>
-        <h2 class="pdf-titulo-documento">${titulo}</h2>
-      </div>
-      <div class="pdf-header-der">
-        <div class="pdf-meta-item">
-          <span class="pdf-meta-label">Nº Presupuesto:</span>
-          <span class="pdf-meta-value">${datos.codigoPresupuesto}</span>
+    <header class="pdf-header-ref">
+      <div class="pdf-header-ref-top">
+        <div class="pdf-header-ref-left">
+          ${logoHTML}
         </div>
-        <div class="pdf-meta-item">
-          <span class="pdf-meta-label">Fecha:</span>
-          <span class="pdf-meta-value">${datos.fecha}</span>
+        <div class="pdf-header-ref-centro">
+          <div class="pdf-empresa-ref">ALUMINIOS GALISUR</div>
+          <div class="pdf-subtitulo-ref">PRESUPUESTO PÉRGOLA BIOCLIMÁTICA · DOHA SUN</div>
+        </div>
+        <div class="pdf-header-ref-right">
+          ${fechaFormateada}
         </div>
       </div>
+      <div class="pdf-divider-ref"></div>
     </header>
   `;
 }
 
 /**
- * Genera el bloque de datos del presupuesto
+ * Genera el bloque de datos del presupuesto con formato de referencia
  */
 function generarBloqueDatosPresupuesto(datos) {
   return `
-    <div class="pdf-bloque-datos">
-      <h3 class="pdf-seccion-titulo">Datos del presupuesto</h3>
-      <div class="pdf-datos-grid">
-        <div class="pdf-dato-item">
-          <span class="pdf-dato-label">Comercial:</span>
-          <span class="pdf-dato-valor">${datos.comercial || '—'}</span>
+    <div class="pdf-resumen-config-ref">
+      <div class="pdf-resumen-header-ref">
+        <div>
+          <h2 class="pdf-titulo-seccion-ref">Resumen de configuración</h2>
+          <div class="pdf-ref-presupuesto">Ref. presupuesto: ${datos.codigoPresupuesto}</div>
         </div>
-        <div class="pdf-dato-item">
-          <span class="pdf-dato-label">Cliente:</span>
-          <span class="pdf-dato-valor">${datos.cliente || '—'}</span>
-        </div>
-        <div class="pdf-dato-item">
-          <span class="pdf-dato-label">Ref. Obra:</span>
-          <span class="pdf-dato-valor">${datos.refObra || '—'}</span>
-        </div>
+        <div class="pdf-badge-previo">PREVIO A MATERIALES</div>
       </div>
       
-      <div class="pdf-config-resumen">
-        <strong>Configuración:</strong>
-        Ancho ${datos.ancho.toFixed(2)}m × Salida ${datos.salida.toFixed(2)}m × Altura ${datos.altura.toFixed(2)}m
-        · ${datos.modulos} módulo(s) · ${datos.tipoMontajeTexto}
-        · ${datos.numPilares} pilar(es) · ${datos.numLamas} lamas
+      <div class="pdf-datos-comerciales-ref">
+        <div><strong>Comercial:</strong> ${datos.comercial || '—'}</div>
+        <div><strong>Cliente:</strong> ${datos.cliente || '—'}</div>
+        <div><strong>Ref. obra:</strong> ${datos.refObra || '—'}</div>
+      </div>
+      
+      <div class="pdf-recuadro-azul">
+        <h3 class="pdf-recuadro-titulo">Datos principales</h3>
+        <ul class="pdf-lista-datos">
+          <li><strong>Largo/salida:</strong> ${datos.salida.toFixed(2)} m · <strong>Ancho:</strong> ${datos.ancho.toFixed(2)} m · <strong>Altura libre:</strong> ${datos.altura.toFixed(2)} m</li>
+          <li><strong>Módulos:</strong> ${datos.modulos}</li>
+          <li><strong>Tipo de montaje:</strong> ${datos.tipoMontajeTexto}</li>
+          <li><strong>Nº pilares calculados:</strong> ${datos.numPilares}</li>
+          <li><strong>Motores:</strong> ${datos.modoMotorTexto}</li>
+          <li><strong>Número de lamas (tabla):</strong> ${datos.numLamas}</li>
+          <li><strong>Mando:</strong> ${datos.mandoTexto}</li>
+        </ul>
       </div>
     </div>
   `;
@@ -365,26 +367,59 @@ function generarBloqueDatosPresupuesto(datos) {
  * Genera el bloque del esquema SVG
  */
 function generarBloqueEsquema() {
-  // Obtener SVG de la web
-  const svgWeb = document.getElementById('svg-container');
+  // Buscar el SVG en varios contenedores posibles
   let svgContent = '';
+  
+  // Intentar primero con svg-container
+  let svgWeb = document.getElementById('svg-container');
+  
+  // Si no existe, buscar cualquier SVG en la tarjeta 4
+  if (!svgWeb || !svgWeb.innerHTML.trim()) {
+    // Buscar en la tarjeta de vista esquemática
+    const tarjetas = document.querySelectorAll('.card');
+    for (const tarjeta of tarjetas) {
+      const titulo = tarjeta.querySelector('.card-title');
+      if (titulo && titulo.textContent.includes('Vista esquemática')) {
+        const svg = tarjeta.querySelector('svg');
+        if (svg) {
+          svgWeb = svg.parentElement;
+          break;
+        }
+      }
+    }
+  }
+  
+  // Si no existe, buscar cualquier SVG visible en la página
+  if (!svgWeb || !svgWeb.innerHTML.trim()) {
+    const svgs = document.querySelectorAll('svg');
+    for (const svg of svgs) {
+      // Verificar que el SVG es visible y tiene contenido
+      const rect = svg.getBoundingClientRect();
+      if (rect.width > 100 && rect.height > 100) {
+        svgWeb = svg.parentElement;
+        break;
+      }
+    }
+  }
   
   if (svgWeb && svgWeb.innerHTML.trim()) {
     svgContent = svgWeb.innerHTML;
     
     // Ajustar tamaño del SVG
     svgContent = svgContent.replace(
-      /<svg/,
-      '<svg style="max-width: 100%; height: auto;"'
+      /<svg/g,
+      '<svg style="max-width: 100%; height: auto; display: block;"'
     );
+    
+    console.log('✅ SVG encontrado y copiado');
   } else {
     svgContent = '<div class="pdf-esquema-placeholder">Esquema no disponible</div>';
+    console.warn('⚠️ No se encontró el SVG del esquema');
   }
 
   return `
-    <div class="pdf-bloque-esquema">
-      <h3 class="pdf-seccion-titulo">Esquema de la instalación</h3>
-      <div class="pdf-esquema-contenedor">
+    <div class="pdf-bloque-esquema-ref">
+      <div class="pdf-esquema-contenedor-ref">
         ${svgContent}
       </div>
     </div>
@@ -397,17 +432,21 @@ function generarBloqueEsquema() {
 function generarTablaInicio(filas) {
   return `
     <div class="pdf-bloque-tabla">
-      <h3 class="pdf-seccion-titulo">Detalle de materiales</h3>
+      <h2 class="pdf-titulo-tabla-ref">Informe de material</h2>
+      <div class="pdf-subtitulo-tabla-ref">• <strong>Acabado general:</strong> blanco</div>
+      
       <table class="pdf-tabla-materiales">
         <thead>
           <tr>
-            <th style="width: 10%;">Ref.</th>
-            <th style="width: 30%;">Descripción</th>
-            <th style="width: 15%;">Acabado</th>
-            <th style="width: 10%;">Long. barra</th>
-            <th style="width: 10%;">Nº barras</th>
-            <th style="width: 12%;">Precio unit.</th>
-            <th style="width: 13%;">Importe</th>
+            <th style="width: 8%;">TIPO</th>
+            <th style="width: 8%;">REF.</th>
+            <th style="width: 24%;">DESCRIPCIÓN</th>
+            <th style="width: 12%;">ACABADO</th>
+            <th style="width: 8%;">REF. ACABADO</th>
+            <th style="width: 10%;">LONG. BARRA (M)</th>
+            <th style="width: 10%;">Nº BARRAS / UDS</th>
+            <th style="width: 10%;">PRECIO UNIT.</th>
+            <th style="width: 10%;">IMPORTE</th>
           </tr>
         </thead>
         <tbody>
@@ -424,17 +463,18 @@ function generarTablaInicio(filas) {
 function generarTablaContinuacion(filas) {
   return `
     <div class="pdf-bloque-tabla">
-      <h3 class="pdf-seccion-titulo">Detalle de materiales (continuación)</h3>
       <table class="pdf-tabla-materiales">
         <thead>
           <tr>
-            <th style="width: 10%;">Ref.</th>
-            <th style="width: 30%;">Descripción</th>
-            <th style="width: 15%;">Acabado</th>
-            <th style="width: 10%;">Long. barra</th>
-            <th style="width: 10%;">Nº barras</th>
-            <th style="width: 12%;">Precio unit.</th>
-            <th style="width: 13%;">Importe</th>
+            <th style="width: 8%;">TIPO</th>
+            <th style="width: 8%;">REF.</th>
+            <th style="width: 24%;">DESCRIPCIÓN</th>
+            <th style="width: 12%;">ACABADO</th>
+            <th style="width: 8%;">REF. ACABADO</th>
+            <th style="width: 10%;">LONG. BARRA (M)</th>
+            <th style="width: 10%;">Nº BARRAS / UDS</th>
+            <th style="width: 10%;">PRECIO UNIT.</th>
+            <th style="width: 10%;">IMPORTE</th>
           </tr>
         </thead>
         <tbody>
@@ -451,35 +491,38 @@ function generarTablaContinuacion(filas) {
 function generarFilasTabla(filas) {
   return filas.map(item => `
     <tr>
+      <td>${item.tipo || 'Perfil'}</td>
       <td>${item.ref || '—'}</td>
       <td>${item.descripcion || '—'}</td>
-      <td>${item.acabado || '—'}</td>
+      <td>${item.acabado || 'Blanco'}</td>
+      <td>SIN ESPECIFICAR</td>
       <td style="text-align: right;">${item.longitudBarra || '—'}</td>
       <td style="text-align: right;">${item.numBarras || '—'}</td>
-      <td style="text-align: right;">${item.precioUnitario || '—'}</td>
-      <td style="text-align: right;">${item.importe !== undefined ? precioFormatearEuro(item.importe) : '—'}</td>
+      <td style="text-align: right;">${item.precioUnitario || '0,00 €'}</td>
+      <td style="text-align: right;">${item.importe !== undefined ? precioFormatearEuro(item.importe) : '0,00 €'}</td>
     </tr>
   `).join('');
 }
 
 /**
- * Genera el bloque de totales
+ * Genera el bloque de totales con formato de referencia
  */
 function generarBloqueTotales(totales) {
   if (!totales) return '';
 
   return `
     <div class="pdf-bloque-totales">
+      <h3 class="pdf-totales-titulo">Resumen económico</h3>
       <div class="pdf-total-fila">
-        <span>Subtotal aluminio:</span>
+        <span>Total perfiles</span>
         <span>${precioFormatearEuro(totales.subtotalAluminio || 0)}</span>
       </div>
       <div class="pdf-total-fila">
-        <span>Subtotal accesorios:</span>
+        <span>Total accesorios</span>
         <span>${precioFormatearEuro(totales.subtotalAccesorios || 0)}</span>
       </div>
       <div class="pdf-total-fila pdf-total-destacado">
-        <span>TOTAL PRESUPUESTO:</span>
+        <span>Total materiales</span>
         <span>${precioFormatearEuro(totales.totalGeneral || 0)}</span>
       </div>
     </div>

@@ -1,7 +1,12 @@
 /**
- * MÓDULO DE EXPORTACIÓN DE PDFs CON VISTA PREVIA
+ * SISTEMA PDF PROFESIONAL CON PAGINACIÓN A4
  * =================================================================
- * Sistema con modal de vista previa y exportación usando html2pdf 0.9.3
+ * - Logo Galisur en cabecera
+ * - Paginación real A4 (210x297mm)
+ * - Cabecera y pie repetidos en cada página
+ * - Tabla con thead repetido
+ * - SVG del esquema incluido
+ * - Márgenes profesionales
  */
 
 import { 
@@ -15,20 +20,36 @@ import {
   precioFormatearEuro
 } from './utils.js';
 
+// ============================================================================
+// CONFIGURACIÓN
+// ============================================================================
+
+const CONFIG_PDF = {
+  FILAS_PAGINA_1: 15,        // Filas en página 1 (tiene esquema)
+  FILAS_PAGINA_RESTO: 25,    // Filas en páginas siguientes
+  LOGO_PATH: './js/logo.png',
+  LOGO_ANCHO_MM: 45          // Ancho del logo en mm
+};
+
 // Variables globales
+let logoBase64 = null;
 let modalAbierto = false;
 let tipoDocumentoActual = 'material';
 
 // ============================================================================
-// FUNCIÓN DE INICIALIZACIÓN
+// INICIALIZACIÓN
 // ============================================================================
 
-export function inicializarSistemaPDF() {
+export async function inicializarSistemaPDF() {
+  // Cargar logo
+  await cargarLogo();
+  
+  // Configurar botones
   const btnVistaPrevia = document.getElementById('btnVistaPreviaPDF');
   const btnWhatsApp = document.getElementById('btnCompartirWhatsApp');
   const btnCerrarModal = document.getElementById('btnCerrarModal');
   const btnCerrarModalFooter = document.getElementById('btnCerrarModalFooter');
-  const btnDescargarDesdeModal = document.getElementById('btnDescargarDesdeLmodal');
+  const btnDescargarDesdeModal = document.getElementById('btnDescargarDesdeModal');
 
   if (btnVistaPrevia) {
     btnVistaPrevia.addEventListener('click', abrirVistaPreviaPDF);
@@ -50,63 +71,74 @@ export function inicializarSistemaPDF() {
     btnDescargarDesdeModal.addEventListener('click', descargarPDFDesdeModal);
   }
 
-  // Cerrar modal al hacer clic en el overlay
+  // Cerrar modal con overlay
   const overlay = document.querySelector('.pdf-modal-overlay');
   if (overlay) {
     overlay.addEventListener('click', cerrarModal);
   }
 
-  console.log('✅ Sistema PDF inicializado correctamente');
+  console.log('✅ Sistema PDF profesional inicializado');
+}
+
+/**
+ * Carga el logo y lo convierte a base64
+ */
+async function cargarLogo() {
+  try {
+    const response = await fetch(CONFIG_PDF.LOGO_PATH);
+    if (!response.ok) {
+      console.warn('⚠️ Logo no encontrado en', CONFIG_PDF.LOGO_PATH);
+      return;
+    }
+    
+    const blob = await response.blob();
+    logoBase64 = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+    
+    console.log('✅ Logo cargado correctamente');
+  } catch (error) {
+    console.error('❌ Error al cargar logo:', error);
+  }
 }
 
 // ============================================================================
 // FUNCIONES DEL MODAL
 // ============================================================================
 
-/**
- * Abre el modal de vista previa con el documento seleccionado
- */
 export function abrirVistaPreviaPDF() {
   console.log('👁️ Abriendo vista previa...');
 
-  // 1. Obtener tipo de documento
   const tipo = obtenerTipoDocumento();
   tipoDocumentoActual = tipo;
 
-  // 2. Rellenar documento
-  if (!rellenarDocumentoPDF(tipo)) {
+  // Generar documento paginado
+  const htmlPaginado = generarDocumentoPaginado(tipo);
+  if (!htmlPaginado) {
     alert('No hay datos calculados. Por favor, calcula primero la configuración.');
     return;
   }
 
-  // 3. Clonar contenido al modal
-  const contenedorOriginal = obtenerContenedorPDF(tipo);
-  if (!contenedorOriginal) {
-    alert('Error: No se pudo obtener el contenedor del documento.');
-    return;
-  }
-
+  // Mostrar en modal
   const modalContent = document.getElementById('pdfPreviewContent');
   if (!modalContent) {
     console.error('❌ No se encuentra el contenedor del modal');
     return;
   }
 
-  // Clonar el contenido
-  modalContent.innerHTML = contenedorOriginal.innerHTML;
+  modalContent.innerHTML = htmlPaginado;
 
-  // 4. Mostrar modal
+  // Abrir modal
   const modal = document.getElementById('pdfPreviewModal');
   if (modal) {
     modal.style.display = 'block';
     modalAbierto = true;
-    console.log('✅ Modal abierto con vista previa');
+    console.log('✅ Modal abierto con vista previa paginada');
   }
 }
 
-/**
- * Cierra el modal de vista previa
- */
 export function cerrarModal() {
   const modal = document.getElementById('pdfPreviewModal');
   if (modal) {
@@ -116,9 +148,6 @@ export function cerrarModal() {
   }
 }
 
-/**
- * Descarga el PDF desde el modal
- */
 export function descargarPDFDesdeModal() {
   console.log('📥 Descargando PDF desde modal...');
 
@@ -132,244 +161,478 @@ export function descargarPDFDesdeModal() {
   exportarAPdf(modalContent, nombreArchivo);
 }
 
-/**
- * Comparte el documento por WhatsApp
- */
 export function compartirWhatsApp() {
   console.log('📤 Compartiendo por WhatsApp...');
 
-  // 1. Rellenar documento
   const tipo = obtenerTipoDocumento();
-  if (!rellenarDocumentoPDF(tipo)) {
+  const htmlPaginado = generarDocumentoPaginado(tipo);
+  
+  if (!htmlPaginado) {
     alert('No hay datos calculados. Por favor, calcula primero la configuración.');
     return;
   }
 
-  // 2. Obtener contenedor
-  const contenedor = obtenerContenedorPDF(tipo);
-  if (!contenedor) {
-    alert('Error: No se pudo obtener el contenedor del documento.');
-    return;
-  }
+  // Crear contenedor temporal
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlPaginado;
+  tempDiv.style.position = 'absolute';
+  tempDiv.style.left = '-9999px';
+  document.body.appendChild(tempDiv);
 
-  // 3. Generar y compartir
   const nombreArchivo = generarNombreArchivo(tipo);
-  generarPdfYCompartir(contenedor, nombreArchivo, tipo);
+  
+  generarPdfYCompartir(tempDiv, nombreArchivo, tipo, () => {
+    document.body.removeChild(tempDiv);
+  });
 }
 
 // ============================================================================
-// FUNCIONES DE RELLENO AUTOMÁTICO
+// GENERACIÓN DE DOCUMENTO PAGINADO
 // ============================================================================
 
 /**
- * Rellena el documento PDF seleccionado con todos los datos actuales
+ * Genera el documento completo con paginación profesional
  */
-function rellenarDocumentoPDF(tipo) {
-  console.log('🔄 Rellenando documento:', tipo);
+function generarDocumentoPaginado(tipo) {
+  console.log('📄 Generando documento paginado:', tipo);
 
-  // Obtener datos
   const informe = obtenerUltimoInforme();
   if (!informe) {
     console.error('❌ No hay informe disponible');
-    return false;
+    return null;
   }
 
   const totales = obtenerTotales();
-  const datosContexto = leerDatosContexto();
+  const datos = leerDatosContexto();
 
-  // Rellenar datos comunes
-  rellenarDatosComunes(tipo, datosContexto);
-
-  // Rellenar según tipo
-  switch (tipo) {
-    case 'material':
-      rellenarPresupuesto(informe, totales, datosContexto);
-      break;
-    case 'corte':
-      rellenarHojaCorte(informe, datosContexto);
-      break;
-    case 'peso':
-      rellenarPesoPerimetros(informe, totales, datosContexto);
-      break;
+  // Solo procesamos presupuesto por ahora (el más complejo)
+  if (tipo === 'material') {
+    return generarPresupuestoPaginado(informe, totales, datos);
+  } else if (tipo === 'corte') {
+    return generarHojaCortePaginada(informe, datos);
+  } else {
+    return generarPesoPerimetrosPaginado(informe, totales, datos);
   }
-
-  console.log('✅ Documento rellenado correctamente');
-  return true;
 }
 
 /**
- * Rellena los datos comunes (cabecera, configuración)
+ * Genera el presupuesto con paginación A4
  */
-function rellenarDatosComunes(tipo, datos) {
-  const prefijo = tipo === 'material' ? 'presupuesto' : tipo === 'corte' ? 'corte' : 'peso';
+function generarPresupuestoPaginado(informe, totales, datos) {
+  const materiales = informe.detalleMaterial || [];
+  const paginasHTML = [];
   
-  // Fecha
-  const fechaElement = document.getElementById(`pdf-${prefijo}-fecha`);
-  if (fechaElement) fechaElement.textContent = datos.fecha;
-  
-  // Código
-  const codigoElement = document.getElementById(`pdf-${prefijo}-codigo`);
-  if (codigoElement) codigoElement.textContent = datos.codigoPresupuesto;
-  
-  // Cabecera
-  const comercialElement = document.getElementById(`pdf-${prefijo}-comercial`);
-  if (comercialElement) comercialElement.textContent = datos.comercial || '—';
-  
-  const clienteElement = document.getElementById(`pdf-${prefijo}-cliente`);
-  if (clienteElement) clienteElement.textContent = datos.cliente || '—';
-  
-  const refObraElement = document.getElementById(`pdf-${prefijo}-refobra`);
-  if (refObraElement) refObraElement.textContent = datos.refObra || '—';
-  
-  // Configuración
-  const configHtml = `
-    <li><strong>Largo/salida:</strong> ${datos.salida.toFixed(2)} m · <strong>Ancho:</strong> ${datos.ancho.toFixed(2)} m · <strong>Altura libre:</strong> ${datos.altura.toFixed(2)} m</li>
-    <li><strong>Módulos:</strong> ${datos.modulos}</li>
-    <li><strong>Tipo de montaje:</strong> ${datos.tipoMontajeTexto}</li>
-    <li><strong>Nº pilares:</strong> ${datos.numPilares}</li>
-    <li><strong>Motores:</strong> ${datos.modoMotorTexto}</li>
-    <li><strong>Número de lamas:</strong> ${datos.numLamas}</li>
-    <li><strong>Mando:</strong> ${datos.mandoTexto}</li>
+  let filaActual = 0;
+  let numeroPagina = 1;
+
+  // PÁGINA 1: Datos + Esquema + Primeras filas de tabla
+  const filasPagina1 = materiales.slice(0, CONFIG_PDF.FILAS_PAGINA_1);
+  paginasHTML.push(generarPagina1Presupuesto(filasPagina1, datos, numeroPagina));
+  filaActual = CONFIG_PDF.FILAS_PAGINA_1;
+  numeroPagina++;
+
+  // PÁGINAS SIGUIENTES: Solo tabla
+  while (filaActual < materiales.length) {
+    const filasPagina = materiales.slice(filaActual, filaActual + CONFIG_PDF.FILAS_PAGINA_RESTO);
+    const esUltimaPagina = (filaActual + CONFIG_PDF.FILAS_PAGINA_RESTO) >= materiales.length;
+    
+    paginasHTML.push(
+      generarPaginaSiguientePresupuesto(filasPagina, datos, numeroPagina, esUltimaPagina, totales)
+    );
+    
+    filaActual += CONFIG_PDF.FILAS_PAGINA_RESTO;
+    numeroPagina++;
+  }
+
+  // Si no hubo páginas adicionales, añadir totales a página 1
+  if (paginasHTML.length === 1) {
+    paginasHTML[0] = paginasHTML[0].replace(
+      '</section>',
+      `${generarBloqueTotales(totales)}</section>`
+    );
+  }
+
+  return `<div class="pdf-documento-multipagina">${paginasHTML.join('')}</div>`;
+}
+
+/**
+ * Genera la primera página del presupuesto
+ */
+function generarPagina1Presupuesto(filas, datos, numPagina) {
+  return `
+    <div class="pdf-page-a4">
+      ${generarCabecera(datos, numPagina, 'PRESUPUESTO PÉRGOLA BIOCLIMÁTICA · DOHA SUN')}
+      
+      <section class="pdf-content-a4">
+        ${generarBloqueDatosPresupuesto(datos)}
+        ${generarBloqueEsquema()}
+        ${generarTablaInicio(filas)}
+      </section>
+      
+      ${generarPie(numPagina)}
+    </div>
   `;
+}
+
+/**
+ * Genera páginas siguientes del presupuesto
+ */
+function generarPaginaSiguientePresupuesto(filas, datos, numPagina, esUltima, totales) {
+  const totalesHTML = esUltima ? generarBloqueTotales(totales) : '';
   
-  const configElement = document.getElementById(`pdf-${prefijo}-config`);
-  if (configElement) configElement.innerHTML = configHtml;
-}
-
-/**
- * Rellena el documento de presupuesto
- */
-function rellenarPresupuesto(informe, totales, datos) {
-  // SVG
-  const svgContainer = document.getElementById('svg-container');
-  const svgPdf = document.getElementById('pdf-presupuesto-svg');
-  if (svgContainer && svgPdf) {
-    svgPdf.innerHTML = svgContainer.innerHTML || '<div style="font-size: 10px; color: #9ca3af; font-style: italic;">Esquema no disponible</div>';
-  }
-
-  // Tabla de materiales
-  const tbody = document.getElementById('pdf-presupuesto-tabla-body');
-  if (tbody && informe.detalleMaterial) {
-    let html = '';
-    informe.detalleMaterial.forEach(item => {
-      html += `
-        <tr>
-          <td>${item.tipo || '—'}</td>
-          <td>${item.ref || '—'}</td>
-          <td>${item.descripcion || '—'}</td>
-          <td>${item.acabado || '—'}</td>
-          <td style="text-align:right;">${item.longitudBarra || '—'}</td>
-          <td style="text-align:right;">${item.numBarras || '—'}</td>
-          <td style="text-align:right;">${item.precioUnitario || '—'}</td>
-          <td style="text-align:right;">${item.importe !== undefined ? precioFormatearEuro(item.importe) : '—'}</td>
-        </tr>
-      `;
-    });
-    tbody.innerHTML = html;
-  }
-
-  // Totales
-  const totalesDiv = document.getElementById('pdf-presupuesto-totales');
-  if (totalesDiv && totales) {
-    totalesDiv.innerHTML = `
-      <div class="pdf-totales-row">
-        <span>Subtotal aluminio</span>
-        <span>${precioFormatearEuro(totales.subtotalAluminio || 0)}</span>
-      </div>
-      <div class="pdf-totales-row">
-        <span>Subtotal accesorios</span>
-        <span>${precioFormatearEuro(totales.subtotalAccesorios || 0)}</span>
-      </div>
-      <div class="pdf-totales-row pdf-totales-total">
-        <span>Total presupuesto</span>
-        <span>${precioFormatearEuro(totales.totalGeneral || 0)}</span>
-      </div>
-    `;
-  }
-}
-
-/**
- * Rellena el documento de hoja de corte
- */
-function rellenarHojaCorte(informe, datos) {
-  const contenedor = document.getElementById('pdf-corte-patrones');
-  if (!contenedor || !informe.detalleHojaCorte) return;
-
-  let html = '';
-  informe.detalleHojaCorte.forEach(perfilData => {
-    html += `
-      <div style="margin-bottom: 1rem; page-break-inside: avoid;">
-        <h3 style="font-size: 11px; font-weight: 700; margin: 0.5rem 0 0.25rem; color: #1f2937;">
-          ${perfilData.ref} - ${perfilData.descripcion}
-        </h3>
-        <p style="font-size: 9px; margin: 0 0 0.4rem; color: #6b7280;">
-          Acabado: ${perfilData.acabado}
-        </p>
-    `;
-
-    if (perfilData.barras && perfilData.barras.length > 0) {
-      perfilData.barras.forEach((barra, idx) => {
-        const piezasStr = barra.piezas.map(p => `${p}mm`).join(', ');
-        html += `
-          <div style="font-size: 9px; padding: 0.3rem 0.5rem; border: 1px solid #e5e7eb; border-radius: 4px; margin-bottom: 0.25rem; background: #f9fafb;">
-            <strong>Barra ${idx + 1}:</strong> ${(barra.longitud / 1000).toFixed(1)}m → 
-            <strong>${barra.piezas.length} piezas:</strong> ${piezasStr} 
-            · <strong>Desperdicio:</strong> ${barra.desperdicio ? barra.desperdicio.toFixed(0) : 0}mm
-          </div>
-        `;
-      });
-      html += `
-        <p style="font-size: 9px; margin: 0.4rem 0 0; font-weight: 600;">
-          Total: ${perfilData.totalBarras || 0} barras · ${perfilData.totalPiezas || 0} piezas
-        </p>
-      `;
-    }
-    html += `</div>`;
-  });
-
-  contenedor.innerHTML = html;
-}
-
-/**
- * Rellena el documento de peso y perímetros
- */
-function rellenarPesoPerimetros(informe, totales, datos) {
-  // Tabla
-  const tbody = document.getElementById('pdf-peso-tabla-body');
-  if (tbody && informe.detallePesoPerimetro) {
-    let html = '';
-    informe.detallePesoPerimetro.forEach(item => {
-      html += `
-        <tr>
-          <td>${item.ref || '—'}</td>
-          <td>${item.descripcion || '—'}</td>
-          <td>${item.acabado || '—'}</td>
-          <td style="text-align:right;">${item.pesoTotal !== undefined ? item.pesoTotal.toFixed(2) : '—'}</td>
-          <td style="text-align:right;">${item.perimetroTotal !== undefined ? item.perimetroTotal.toFixed(0) : '—'}</td>
-        </tr>
-      `;
-    });
-    tbody.innerHTML = html;
-  }
-
-  // Totales
-  const totalesDiv = document.getElementById('pdf-peso-totales');
-  if (totalesDiv && totales) {
-    totalesDiv.innerHTML = `
-      <div class="pdf-totales-row pdf-totales-total">
-        <span>Peso total estructura</span>
-        <span>${totales.pesoTotal !== undefined ? totales.pesoTotal.toFixed(2) : '0.00'} kg</span>
-      </div>
-      <div class="pdf-totales-row">
-        <span>Perímetro total</span>
-        <span>${totales.perimetroTotal !== undefined ? totales.perimetroTotal.toFixed(0) : '0'} mm</span>
-      </div>
-    `;
-  }
+  return `
+    <div class="pdf-page-a4">
+      ${generarCabecera(datos, numPagina, 'PRESUPUESTO PÉRGOLA BIOCLIMÁTICA · DOHA SUN')}
+      
+      <section class="pdf-content-a4">
+        ${generarTablaContinuacion(filas)}
+        ${totalesHTML}
+      </section>
+      
+      ${generarPie(numPagina)}
+    </div>
+  `;
 }
 
 // ============================================================================
-// FUNCIONES DE LECTURA DE DATOS
+// COMPONENTES DEL DOCUMENTO
+// ============================================================================
+
+/**
+ * Genera la cabecera repetible
+ */
+function generarCabecera(datos, numPagina, titulo) {
+  const logoHTML = logoBase64 
+    ? `<img src="${logoBase64}" class="pdf-logo-img" alt="Logo Galisur" />`
+    : '<div class="pdf-logo-placeholder">GALISUR</div>';
+
+  return `
+    <header class="pdf-header-a4">
+      <div class="pdf-header-izq">
+        ${logoHTML}
+      </div>
+      <div class="pdf-header-centro">
+        <h1 class="pdf-titulo-principal">ALUMINIOS GALISUR</h1>
+        <h2 class="pdf-titulo-documento">${titulo}</h2>
+      </div>
+      <div class="pdf-header-der">
+        <div class="pdf-meta-item">
+          <span class="pdf-meta-label">Nº Presupuesto:</span>
+          <span class="pdf-meta-value">${datos.codigoPresupuesto}</span>
+        </div>
+        <div class="pdf-meta-item">
+          <span class="pdf-meta-label">Fecha:</span>
+          <span class="pdf-meta-value">${datos.fecha}</span>
+        </div>
+      </div>
+    </header>
+  `;
+}
+
+/**
+ * Genera el bloque de datos del presupuesto
+ */
+function generarBloqueDatosPresupuesto(datos) {
+  return `
+    <div class="pdf-bloque-datos">
+      <h3 class="pdf-seccion-titulo">Datos del presupuesto</h3>
+      <div class="pdf-datos-grid">
+        <div class="pdf-dato-item">
+          <span class="pdf-dato-label">Comercial:</span>
+          <span class="pdf-dato-valor">${datos.comercial || '—'}</span>
+        </div>
+        <div class="pdf-dato-item">
+          <span class="pdf-dato-label">Cliente:</span>
+          <span class="pdf-dato-valor">${datos.cliente || '—'}</span>
+        </div>
+        <div class="pdf-dato-item">
+          <span class="pdf-dato-label">Ref. Obra:</span>
+          <span class="pdf-dato-valor">${datos.refObra || '—'}</span>
+        </div>
+      </div>
+      
+      <div class="pdf-config-resumen">
+        <strong>Configuración:</strong>
+        Ancho ${datos.ancho.toFixed(2)}m × Salida ${datos.salida.toFixed(2)}m × Altura ${datos.altura.toFixed(2)}m
+        · ${datos.modulos} módulo(s) · ${datos.tipoMontajeTexto}
+        · ${datos.numPilares} pilar(es) · ${datos.numLamas} lamas
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Genera el bloque del esquema SVG
+ */
+function generarBloqueEsquema() {
+  // Obtener SVG de la web
+  const svgWeb = document.getElementById('svg-container');
+  let svgContent = '';
+  
+  if (svgWeb && svgWeb.innerHTML.trim()) {
+    svgContent = svgWeb.innerHTML;
+    
+    // Ajustar tamaño del SVG
+    svgContent = svgContent.replace(
+      /<svg/,
+      '<svg style="max-width: 100%; height: auto;"'
+    );
+  } else {
+    svgContent = '<div class="pdf-esquema-placeholder">Esquema no disponible</div>';
+  }
+
+  return `
+    <div class="pdf-bloque-esquema">
+      <h3 class="pdf-seccion-titulo">Esquema de la instalación</h3>
+      <div class="pdf-esquema-contenedor">
+        ${svgContent}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Genera el inicio de la tabla (con thead)
+ */
+function generarTablaInicio(filas) {
+  return `
+    <div class="pdf-bloque-tabla">
+      <h3 class="pdf-seccion-titulo">Detalle de materiales</h3>
+      <table class="pdf-tabla-materiales">
+        <thead>
+          <tr>
+            <th style="width: 10%;">Ref.</th>
+            <th style="width: 30%;">Descripción</th>
+            <th style="width: 15%;">Acabado</th>
+            <th style="width: 10%;">Long. barra</th>
+            <th style="width: 10%;">Nº barras</th>
+            <th style="width: 12%;">Precio unit.</th>
+            <th style="width: 13%;">Importe</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${generarFilasTabla(filas)}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/**
+ * Genera continuación de tabla (con thead repetido)
+ */
+function generarTablaContinuacion(filas) {
+  return `
+    <div class="pdf-bloque-tabla">
+      <h3 class="pdf-seccion-titulo">Detalle de materiales (continuación)</h3>
+      <table class="pdf-tabla-materiales">
+        <thead>
+          <tr>
+            <th style="width: 10%;">Ref.</th>
+            <th style="width: 30%;">Descripción</th>
+            <th style="width: 15%;">Acabado</th>
+            <th style="width: 10%;">Long. barra</th>
+            <th style="width: 10%;">Nº barras</th>
+            <th style="width: 12%;">Precio unit.</th>
+            <th style="width: 13%;">Importe</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${generarFilasTabla(filas)}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/**
+ * Genera las filas de la tabla
+ */
+function generarFilasTabla(filas) {
+  return filas.map(item => `
+    <tr>
+      <td>${item.ref || '—'}</td>
+      <td>${item.descripcion || '—'}</td>
+      <td>${item.acabado || '—'}</td>
+      <td style="text-align: right;">${item.longitudBarra || '—'}</td>
+      <td style="text-align: right;">${item.numBarras || '—'}</td>
+      <td style="text-align: right;">${item.precioUnitario || '—'}</td>
+      <td style="text-align: right;">${item.importe !== undefined ? precioFormatearEuro(item.importe) : '—'}</td>
+    </tr>
+  `).join('');
+}
+
+/**
+ * Genera el bloque de totales
+ */
+function generarBloqueTotales(totales) {
+  if (!totales) return '';
+
+  return `
+    <div class="pdf-bloque-totales">
+      <div class="pdf-total-fila">
+        <span>Subtotal aluminio:</span>
+        <span>${precioFormatearEuro(totales.subtotalAluminio || 0)}</span>
+      </div>
+      <div class="pdf-total-fila">
+        <span>Subtotal accesorios:</span>
+        <span>${precioFormatearEuro(totales.subtotalAccesorios || 0)}</span>
+      </div>
+      <div class="pdf-total-fila pdf-total-destacado">
+        <span>TOTAL PRESUPUESTO:</span>
+        <span>${precioFormatearEuro(totales.totalGeneral || 0)}</span>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Genera el pie de página
+ */
+function generarPie(numPagina) {
+  return `
+    <footer class="pdf-footer-a4">
+      <span class="pdf-footer-izq">Página ${numPagina}</span>
+      <span class="pdf-footer-der">ALUMINIOS GALISUR · Pérgola Bioclimática Doha Sun</span>
+    </footer>
+  `;
+}
+
+// ============================================================================
+// DOCUMENTOS SIMPLIFICADOS (Hoja de corte y Peso)
+// ============================================================================
+
+function generarHojaCortePaginada(informe, datos) {
+  // Similar pero más simple - una sola página normalmente
+  return `
+    <div class="pdf-documento-multipagina">
+      <div class="pdf-page-a4">
+        ${generarCabecera(datos, 1, 'HOJA DE CORTE · FABRICACIÓN · DOHA SUN')}
+        <section class="pdf-content-a4">
+          ${generarBloqueDatosPresupuesto(datos)}
+          ${generarPatronesCorte(informe)}
+        </section>
+        ${generarPie(1)}
+      </div>
+    </div>
+  `;
+}
+
+function generarPesoPerimetrosPaginado(informe, totales, datos) {
+  return `
+    <div class="pdf-documento-multipagina">
+      <div class="pdf-page-a4">
+        ${generarCabecera(datos, 1, 'PESO Y PERÍMETROS · DOCUMENTO TÉCNICO · DOHA SUN')}
+        <section class="pdf-content-a4">
+          ${generarBloqueDatosPresupuesto(datos)}
+          ${generarTablaPeso(informe, totales)}
+        </section>
+        ${generarPie(1)}
+      </div>
+    </div>
+  `;
+}
+
+function generarPatronesCorte(informe) {
+  if (!informe.detalleHojaCorte) return '<p>No hay datos de corte</p>';
+
+  let html = '<div class="pdf-bloque-tabla"><h3 class="pdf-seccion-titulo">Patrones de corte</h3>';
+  
+  informe.detalleHojaCorte.forEach(perfil => {
+    html += `
+      <div style="margin-bottom: 1rem; padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 4px;">
+        <h4 style="font-size: 11pt; margin: 0 0 0.25rem; color: #1f2937;">
+          ${perfil.ref} - ${perfil.descripcion}
+        </h4>
+        <p style="font-size: 9pt; margin: 0 0 0.5rem; color: #6b7280;">
+          Acabado: ${perfil.acabado}
+        </p>
+    `;
+
+    if (perfil.barras) {
+      perfil.barras.forEach((barra, idx) => {
+        const piezasStr = barra.piezas.map(p => `${p}mm`).join(', ');
+        html += `
+          <div style="font-size: 9pt; padding: 0.25rem 0.5rem; background: #f9fafb; margin-bottom: 0.25rem;">
+            <strong>Barra ${idx + 1}:</strong> ${(barra.longitud / 1000).toFixed(1)}m → 
+            ${barra.piezas.length} piezas: ${piezasStr} 
+            · Desperdicio: ${barra.desperdicio ? barra.desperdicio.toFixed(0) : 0}mm
+          </div>
+        `;
+      });
+      
+      html += `
+        <p style="font-size: 9pt; margin: 0.5rem 0 0; font-weight: 600;">
+          Total: ${perfil.totalBarras || 0} barras · ${perfil.totalPiezas || 0} piezas
+        </p>
+      `;
+    }
+    
+    html += `</div>`;
+  });
+
+  html += '</div>';
+  return html;
+}
+
+function generarTablaPeso(informe, totales) {
+  if (!informe.detallePesoPerimetro) return '<p>No hay datos de peso</p>';
+
+  let html = `
+    <div class="pdf-bloque-tabla">
+      <h3 class="pdf-seccion-titulo">Peso y perímetros por perfil</h3>
+      <table class="pdf-tabla-materiales">
+        <thead>
+          <tr>
+            <th style="width: 15%;">Ref.</th>
+            <th style="width: 35%;">Descripción</th>
+            <th style="width: 20%;">Acabado</th>
+            <th style="width: 15%;">Peso total (kg)</th>
+            <th style="width: 15%;">Perímetro (mm)</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  informe.detallePesoPerimetro.forEach(item => {
+    html += `
+      <tr>
+        <td>${item.ref || '—'}</td>
+        <td>${item.descripcion || '—'}</td>
+        <td>${item.acabado || '—'}</td>
+        <td style="text-align: right;">${item.pesoTotal !== undefined ? item.pesoTotal.toFixed(2) : '—'}</td>
+        <td style="text-align: right;">${item.perimetroTotal !== undefined ? item.perimetroTotal.toFixed(0) : '—'}</td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  // Totales
+  if (totales) {
+    html += `
+      <div class="pdf-bloque-totales">
+        <div class="pdf-total-fila pdf-total-destacado">
+          <span>Peso total estructura:</span>
+          <span>${totales.pesoTotal !== undefined ? totales.pesoTotal.toFixed(2) : '0.00'} kg</span>
+        </div>
+        <div class="pdf-total-fila">
+          <span>Perímetro total:</span>
+          <span>${totales.perimetroTotal !== undefined ? totales.perimetroTotal.toFixed(0) : '0'} mm</span>
+        </div>
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+// ============================================================================
+// UTILIDADES
 // ============================================================================
 
 function leerDatosContexto() {
@@ -413,29 +676,9 @@ function leerDatosContexto() {
   };
 }
 
-// ============================================================================
-// FUNCIONES AUXILIARES
-// ============================================================================
-
 function obtenerTipoDocumento() {
   const selector = document.getElementById('selectorDocumento');
   return selector ? selector.value : 'material';
-}
-
-function obtenerContenedorPDF(tipo) {
-  let contenedor;
-  switch (tipo) {
-    case 'material':
-      contenedor = document.getElementById('pdf-presupuesto');
-      break;
-    case 'corte':
-      contenedor = document.getElementById('pdf-hoja-corte');
-      break;
-    case 'peso':
-      contenedor = document.getElementById('pdf-peso-perimetros');
-      break;
-  }
-  return contenedor;
 }
 
 function generarNombreArchivo(tipo) {
@@ -456,24 +699,36 @@ function generarTimestamp() {
 }
 
 // ============================================================================
-// EXPORTACIÓN A PDF (html2pdf 0.9.3)
+// EXPORTACIÓN PDF
 // ============================================================================
 
 function exportarAPdf(elemento, nombreArchivo) {
   if (typeof html2pdf === 'undefined') {
     console.error('❌ html2pdf no está cargado');
-    alert('Error: Librería de PDF no encontrada. Por favor, recarga la página.');
+    alert('Error: Librería de PDF no encontrada.');
     return;
   }
 
-  console.log('🚀 Generando PDF con html2pdf 0.9.3...');
+  console.log('🚀 Generando PDF con paginación A4...');
 
   const opt = {
     margin: 0,
     filename: nombreArchivo,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2 },
-    jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
+    html2canvas: { 
+      scale: 2,
+      useCORS: true,
+      logging: false
+    },
+    jsPDF: { 
+      unit: 'mm',
+      format: 'a4',
+      orientation: 'portrait'
+    },
+    pagebreak: {
+      mode: ['avoid-all', 'css', 'legacy'],
+      before: '.pdf-page-a4'
+    }
   };
 
   html2pdf()
@@ -485,25 +740,35 @@ function exportarAPdf(elemento, nombreArchivo) {
     })
     .catch(error => {
       console.error('❌ Error al generar PDF:', error);
-      alert('Error al generar el PDF. Revisa la consola para más detalles.');
+      alert('Error al generar el PDF.');
     });
 }
 
-function generarPdfYCompartir(elemento, nombreArchivo, tipo) {
+function generarPdfYCompartir(elemento, nombreArchivo, tipo, callback) {
   if (typeof html2pdf === 'undefined') {
     console.error('❌ html2pdf no está cargado');
     alert('Error: Librería de PDF no encontrada.');
     return;
   }
 
-  console.log('🚀 Generando PDF para compartir...');
-
   const opt = {
     margin: 0,
     filename: nombreArchivo,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2 },
-    jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
+    html2canvas: { 
+      scale: 2,
+      useCORS: true,
+      logging: false
+    },
+    jsPDF: { 
+      unit: 'mm',
+      format: 'a4',
+      orientation: 'portrait'
+    },
+    pagebreak: {
+      mode: ['avoid-all', 'css', 'legacy'],
+      before: '.pdf-page-a4'
+    }
   };
 
   html2pdf()
@@ -512,6 +777,8 @@ function generarPdfYCompartir(elemento, nombreArchivo, tipo) {
     .save()
     .then(() => {
       console.log('✅ PDF generado, abriendo WhatsApp...');
+
+      if (callback) callback();
 
       let tipoTexto = 'Presupuesto';
       if (tipo === 'corte') tipoTexto = 'Hoja de corte';
@@ -524,6 +791,6 @@ function generarPdfYCompartir(elemento, nombreArchivo, tipo) {
     })
     .catch(error => {
       console.error('❌ Error al generar PDF:', error);
-      alert('Error al generar el PDF. Revisa la consola para más detalles.');
+      if (callback) callback();
     });
 }

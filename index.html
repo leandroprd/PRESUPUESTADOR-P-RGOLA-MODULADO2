@@ -4,6 +4,313 @@
   <meta charset="UTF-8" />
   <title>Presupuestador pérgola bioclimática - Galisur</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  <!-- Estilos CSS para paginación PDF A4 profesional -->
+  <style>
+    /* ============================================================================
+       ESTILOS PDF PROFESIONALES - PAGINACIÓN A4
+       ============================================================================ */
+
+    /* Contenedor general de documentos multipágina */
+    .pdf-documento-multipagina {
+      font-family: "Calibri", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    /* Página A4 */
+    .pdf-page-a4 {
+      width: 210mm;
+      height: 297mm;
+      padding: 12mm 15mm;
+      margin: 0 auto 20mm;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-sizing: border-box;
+      position: relative;
+      page-break-after: always;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pdf-page-a4:last-child {
+      page-break-after: auto;
+      margin-bottom: 0;
+    }
+
+    /* Cabecera repetida */
+    .pdf-header-a4 {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 8mm;
+      border-bottom: 2px solid #0054a6;
+      margin-bottom: 6mm;
+    }
+
+    .pdf-logo-img {
+      width: 45mm;
+      height: auto;
+      display: block;
+    }
+
+    .pdf-logo-placeholder {
+      width: 45mm;
+      height: 20mm;
+      background: #0054a6;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14pt;
+      border-radius: 4px;
+    }
+
+    .pdf-header-centro {
+      flex: 1;
+      text-align: center;
+      padding: 0 10mm;
+    }
+
+    .pdf-titulo-principal {
+      margin: 0 0 2mm 0;
+      font-size: 16pt;
+      font-weight: 700;
+      color: #0054a6;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .pdf-titulo-documento {
+      margin: 0;
+      font-size: 10pt;
+      font-weight: 600;
+      color: #6b7280;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .pdf-meta-item {
+      margin-bottom: 2mm;
+      font-size: 9pt;
+    }
+
+    .pdf-meta-label {
+      color: #6b7280;
+      margin-right: 3mm;
+    }
+
+    .pdf-meta-value {
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    /* Contenido */
+    .pdf-content-a4 {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 10mm;
+    }
+
+    .pdf-seccion-titulo {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #1f2937;
+      margin: 0 0 3mm 0;
+      padding-bottom: 1mm;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    /* Bloque de datos */
+    .pdf-bloque-datos {
+      margin-bottom: 5mm;
+      padding: 3mm 4mm;
+      background: #f9fafb;
+      border-radius: 4px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .pdf-datos-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3mm;
+      margin-bottom: 3mm;
+    }
+
+    .pdf-dato-item {
+      font-size: 9pt;
+    }
+
+    .pdf-dato-label {
+      font-weight: 600;
+      color: #6b7280;
+      margin-right: 2mm;
+    }
+
+    .pdf-dato-valor {
+      color: #1f2937;
+    }
+
+    .pdf-config-resumen {
+      font-size: 9pt;
+      color: #374151;
+      line-height: 1.4;
+    }
+
+    /* Esquema */
+    .pdf-bloque-esquema {
+      margin-bottom: 5mm;
+    }
+
+    .pdf-esquema-contenedor {
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      padding: 3mm;
+      background: white;
+      text-align: center;
+      min-height: 40mm;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pdf-esquema-placeholder {
+      color: #9ca3af;
+      font-style: italic;
+      font-size: 9pt;
+    }
+
+    /* Tabla */
+    .pdf-bloque-tabla {
+      margin-bottom: 5mm;
+      flex: 1;
+    }
+
+    .pdf-tabla-materiales {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+    }
+
+    .pdf-tabla-materiales thead {
+      background: #f3f4f6;
+    }
+
+    .pdf-tabla-materiales th {
+      padding: 2mm 2mm;
+      text-align: left;
+      font-weight: 600;
+      color: #1f2937;
+      border: 1px solid #d1d5db;
+      font-size: 9pt;
+    }
+
+    .pdf-tabla-materiales td {
+      padding: 1.5mm 2mm;
+      border: 1px solid #e5e7eb;
+      color: #374151;
+    }
+
+    .pdf-tabla-materiales tr:nth-child(even) {
+      background: #fafafa;
+    }
+
+    .pdf-tabla-materiales tr {
+      page-break-inside: avoid;
+    }
+
+    /* Totales */
+    .pdf-bloque-totales {
+      margin-top: 5mm;
+      max-width: 80mm;
+      margin-left: auto;
+      border-top: 2px solid #d1d5db;
+      padding-top: 3mm;
+    }
+
+    .pdf-total-fila {
+      display: flex;
+      justify-content: space-between;
+      padding: 1.5mm 0;
+      font-size: 10pt;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .pdf-total-fila span:first-child {
+      color: #6b7280;
+    }
+
+    .pdf-total-fila span:last-child {
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    .pdf-total-destacado {
+      border-top: 2px solid #0054a6;
+      border-bottom: 2px solid #0054a6;
+      margin-top: 2mm;
+      padding: 2mm 0;
+    }
+
+    .pdf-total-destacado span {
+      font-weight: 700;
+      color: #0054a6 !important;
+    }
+
+    .pdf-total-destacado span:last-child {
+      font-size: 12pt;
+    }
+
+    /* Pie de página */
+    .pdf-footer-a4 {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 3mm;
+      border-top: 1px solid #d1d5db;
+      font-size: 8pt;
+      color: #6b7280;
+      margin-top: auto;
+    }
+
+    .pdf-footer-izq {
+      font-weight: 600;
+    }
+
+    .pdf-footer-der {
+      font-style: italic;
+    }
+
+    /* Reglas de impresión */
+    @media print {
+      .pdf-documento-multipagina {
+        background: white;
+        padding: 0;
+      }
+      
+      .pdf-page-a4 {
+        margin: 0;
+        box-shadow: none;
+        page-break-after: always;
+      }
+      
+      .pdf-page-a4:last-child {
+        page-break-after: auto;
+      }
+      
+      .pdf-tabla-materiales thead {
+        display: table-header-group;
+      }
+      
+      .pdf-bloque-datos,
+      .pdf-bloque-esquema,
+      .pdf-bloque-totales {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
 
   <style>
     /* ============================================
@@ -640,27 +947,6 @@
     }
 
     /* ============================================
-       DOCUMENTOS PDF OCULTOS
-       ============================================ */
-    .pdf-document-hidden {
-      position: absolute;
-      left: -10000px;
-      top: 0;
-      width: 794px;
-      background: white;
-      padding: 24px;
-      box-sizing: border-box;
-      font-family: "Calibri", "Segoe UI", system-ui, -apple-system, sans-serif;
-      visibility: visible;
-      opacity: 1;
-    }
-
-    .pdf-page {
-      width: 100%;
-      min-height: 1123px;
-    }
-
-    /* ============================================
        MODAL DE VISTA PREVIA PDF
        ============================================ */
     .pdf-modal {
@@ -747,184 +1033,6 @@
       gap: 1rem;
       padding: 1.5rem;
       border-top: 1px solid #e5e7eb;
-    }
-
-    /* ============================================
-       ESTILOS PARA DOCUMENTOS PDF
-       ============================================ */
-    
-    /* Cabecera */
-    .pdf-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .pdf-header-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .pdf-header-text {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
-    .pdf-empresa {
-      font-family: "Calibri", "Segoe UI", system-ui, -apple-system, sans-serif;
-      font-weight: 700;
-      font-size: 13px;
-      letter-spacing: 0.24em;
-      text-transform: uppercase;
-      color: #0054a6;
-    }
-
-    .pdf-subtitulo {
-      margin-top: 2px;
-      font-family: "Calibri", "Segoe UI", system-ui, -apple-system, sans-serif;
-      font-size: 8.5px;
-      letter-spacing: 0.24em;
-      text-transform: uppercase;
-      color: #6b7280;
-    }
-
-    .pdf-header-right {
-      display: flex;
-      align-items: center;
-    }
-
-    .pdf-fecha {
-      font-size: 10px;
-      color: #6b7280;
-    }
-
-    .pdf-divider {
-      border: none;
-      border-top: 1px solid #e5e7eb;
-      margin: 4px 0 14px 0;
-    }
-
-    /* Secciones */
-    .pdf-section {
-      margin-bottom: 14px;
-    }
-
-    .pdf-section-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: #1f2937;
-      margin: 0 0 4px 0;
-    }
-
-    .pdf-resumen-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 6px;
-    }
-
-    .pdf-ref {
-      font-size: 10px;
-      color: #4b5563;
-    }
-
-    .pdf-ref-code {
-      font-weight: 600;
-    }
-
-    .pdf-pill {
-      font-size: 9px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: #e0f2fe;
-      color: #0369a1;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .pdf-resumen-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      font-size: 10px;
-      margin-bottom: 6px;
-    }
-
-    .pdf-resumen-card {
-      border-radius: 12px;
-      border: 1px solid #d1d5db;
-      background: #f9fafb;
-      padding: 8px 10px;
-    }
-
-    .pdf-resumen-card-title {
-      font-size: 10px;
-      font-weight: 600;
-      color: #1f2937;
-      margin-bottom: 4px;
-    }
-
-    .pdf-resumen-list {
-      margin: 0;
-      padding-left: 18px;
-      font-size: 10px;
-      color: #374151;
-      list-style-type: disc;
-    }
-
-    .pdf-resumen-list li {
-      margin-bottom: 2px;
-    }
-
-    .pdf-imagen-wrapper {
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 6px;
-      min-height: 120px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Tablas */
-    .pdf-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 4px;
-      font-size: 10px;
-    }
-
-    .pdf-table th,
-    .pdf-table td {
-      border: 1px solid #e5e7eb;
-      padding: 4px 6px;
-      text-align: left;
-    }
-
-    .pdf-table th {
-      background: #f3f4f6;
-      font-weight: 600;
-    }
-
-    .pdf-totales {
-      margin-top: 8px;
-      max-width: 260px;
-      margin-left: auto;
-      font-size: 10px;
-    }
-
-    .pdf-totales-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 2px 0;
-      border-bottom: 1px solid #e5e7eb;
-    }
-
-    .pdf-totales-total {
-      font-weight: 700;
     }
 
     /* ============================================
@@ -1404,197 +1512,6 @@
     </div>
 
     <!-- ============================================
-         DOCUMENTOS PDF OCULTOS (se rellenan en tiempo real)
-         ============================================ -->
-    
-    <!-- DOCUMENTO 1: PRESUPUESTO -->
-    <div id="pdf-presupuesto" class="pdf-document-hidden">
-      <div class="pdf-page">
-        <!-- Cabecera corporativa -->
-        <header class="pdf-header">
-          <div class="pdf-header-left">
-            <div class="pdf-header-text">
-              <div class="pdf-empresa">ALUMINIOS GALISUR</div>
-              <div class="pdf-subtitulo">PRESUPUESTO PÉRGOLA BIOCLIMÁTICA · DOHA SUN</div>
-            </div>
-          </div>
-          <div class="pdf-header-right">
-            <div class="pdf-fecha" id="pdf-presupuesto-fecha"></div>
-          </div>
-        </header>
-
-        <hr class="pdf-divider">
-
-        <!-- Datos de obra -->
-        <section class="pdf-section pdf-datos-obra">
-          <div class="pdf-resumen-header">
-            <div>
-              <h1 class="pdf-section-title">Datos de la obra</h1>
-              <div class="pdf-ref">
-                Ref. presupuesto: <span class="pdf-ref-code" id="pdf-presupuesto-codigo"></span>
-              </div>
-            </div>
-            <div class="pdf-pill">PRESUPUESTO</div>
-          </div>
-
-          <div class="pdf-resumen-meta">
-            <div><strong>Comercial:</strong> <span id="pdf-presupuesto-comercial"></span></div>
-            <div><strong>Cliente:</strong> <span id="pdf-presupuesto-cliente"></span></div>
-            <div><strong>Ref. obra:</strong> <span id="pdf-presupuesto-refobra"></span></div>
-          </div>
-
-          <div class="pdf-resumen-card">
-            <div class="pdf-resumen-card-title">Configuración principal</div>
-            <ul class="pdf-resumen-list" id="pdf-presupuesto-config"></ul>
-          </div>
-        </section>
-
-        <!-- Vista esquemática -->
-        <section class="pdf-section pdf-esquema">
-          <h2 class="pdf-section-title">Vista esquemática</h2>
-          <div class="pdf-imagen-wrapper" id="pdf-presupuesto-svg"></div>
-        </section>
-
-        <!-- Tabla de materiales -->
-        <section class="pdf-section pdf-presupuesto-tabla">
-          <h2 class="pdf-section-title">Detalle de materiales</h2>
-          <table class="pdf-table">
-            <thead>
-              <tr>
-                <th>Tipo</th>
-                <th>Ref.</th>
-                <th>Descripción</th>
-                <th>Acabado</th>
-                <th style="text-align:right;">Long. barra</th>
-                <th style="text-align:right;">Nº barras/uds</th>
-                <th style="text-align:right;">Precio unit.</th>
-                <th style="text-align:right;">Importe</th>
-              </tr>
-            </thead>
-            <tbody id="pdf-presupuesto-tabla-body"></tbody>
-          </table>
-
-          <!-- Totales -->
-          <div class="pdf-totales" id="pdf-presupuesto-totales"></div>
-        </section>
-      </div>
-    </div>
-
-    <!-- DOCUMENTO 2: HOJA DE CORTE -->
-    <div id="pdf-hoja-corte" class="pdf-document-hidden">
-      <div class="pdf-page">
-        <!-- Cabecera corporativa -->
-        <header class="pdf-header">
-          <div class="pdf-header-left">
-            <div class="pdf-header-text">
-              <div class="pdf-empresa">ALUMINIOS GALISUR</div>
-              <div class="pdf-subtitulo">HOJA DE CORTE · FABRICACIÓN · DOHA SUN</div>
-            </div>
-          </div>
-          <div class="pdf-header-right">
-            <div class="pdf-fecha" id="pdf-corte-fecha"></div>
-          </div>
-        </header>
-
-        <hr class="pdf-divider">
-
-        <!-- Datos de obra -->
-        <section class="pdf-section pdf-datos-obra">
-          <div class="pdf-resumen-header">
-            <div>
-              <h1 class="pdf-section-title">Datos de la obra</h1>
-              <div class="pdf-ref">
-                Ref. presupuesto: <span class="pdf-ref-code" id="pdf-corte-codigo"></span>
-              </div>
-            </div>
-            <div class="pdf-pill">CORTE</div>
-          </div>
-
-          <div class="pdf-resumen-meta">
-            <div><strong>Comercial:</strong> <span id="pdf-corte-comercial"></span></div>
-            <div><strong>Cliente:</strong> <span id="pdf-corte-cliente"></span></div>
-            <div><strong>Ref. obra:</strong> <span id="pdf-corte-refobra"></span></div>
-          </div>
-
-          <div class="pdf-resumen-card">
-            <div class="pdf-resumen-card-title">Configuración principal</div>
-            <ul class="pdf-resumen-list" id="pdf-corte-config"></ul>
-          </div>
-        </section>
-
-        <!-- Patrones de corte -->
-        <section class="pdf-section pdf-hoja-corte">
-          <h2 class="pdf-section-title">Patrones de corte por perfil</h2>
-          <div id="pdf-corte-patrones"></div>
-        </section>
-      </div>
-    </div>
-
-    <!-- DOCUMENTO 3: PESO Y PERÍMETROS -->
-    <div id="pdf-peso-perimetros" class="pdf-document-hidden">
-      <div class="pdf-page">
-        <!-- Cabecera corporativa -->
-        <header class="pdf-header">
-          <div class="pdf-header-left">
-            <div class="pdf-header-text">
-              <div class="pdf-empresa">ALUMINIOS GALISUR</div>
-              <div class="pdf-subtitulo">PESO Y PERÍMETROS · DOCUMENTO TÉCNICO · DOHA SUN</div>
-            </div>
-          </div>
-          <div class="pdf-header-right">
-            <div class="pdf-fecha" id="pdf-peso-fecha"></div>
-          </div>
-        </header>
-
-        <hr class="pdf-divider">
-
-        <!-- Datos de obra -->
-        <section class="pdf-section pdf-datos-obra">
-          <div class="pdf-resumen-header">
-            <div>
-              <h1 class="pdf-section-title">Datos de la obra</h1>
-              <div class="pdf-ref">
-                Ref. presupuesto: <span class="pdf-ref-code" id="pdf-peso-codigo"></span>
-              </div>
-            </div>
-            <div class="pdf-pill">PESO</div>
-          </div>
-
-          <div class="pdf-resumen-meta">
-            <div><strong>Comercial:</strong> <span id="pdf-peso-comercial"></span></div>
-            <div><strong>Cliente:</strong> <span id="pdf-peso-cliente"></span></div>
-            <div><strong>Ref. obra:</strong> <span id="pdf-peso-refobra"></span></div>
-          </div>
-
-          <div class="pdf-resumen-card">
-            <div class="pdf-resumen-card-title">Configuración principal</div>
-            <ul class="pdf-resumen-list" id="pdf-peso-config"></ul>
-          </div>
-        </section>
-
-        <!-- Tabla de peso y perímetros -->
-        <section class="pdf-section pdf-peso-perimetros">
-          <h2 class="pdf-section-title">Peso y perímetros por perfil</h2>
-          <table class="pdf-table">
-            <thead>
-              <tr>
-                <th>Ref.</th>
-                <th>Descripción</th>
-                <th>Acabado</th>
-                <th style="text-align:right;">Peso total (kg)</th>
-                <th style="text-align:right;">Perímetro total (mm)</th>
-              </tr>
-            </thead>
-            <tbody id="pdf-peso-tabla-body"></tbody>
-          </table>
-
-          <!-- Totales -->
-          <div class="pdf-totales" id="pdf-peso-totales"></div>
-        </section>
-      </div>
-    </div>
-
-    <!-- ============================================
          MODAL DE VISTA PREVIA PDF
          ============================================ -->
     <div id="pdfPreviewModal" class="pdf-modal" style="display: none;">
@@ -1618,7 +1535,7 @@
          FOOTER
          ============================================ -->
     <footer>
-      Aluminios Galisur · Presupuestador interno serie Doha Sun.
+      Aluminios Galisur · Presupuestador interno serie Doha Sun. PRUEBA
     </footer>
   </div>
 

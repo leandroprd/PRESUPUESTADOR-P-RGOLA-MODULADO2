@@ -90,10 +90,12 @@ import {
   obtenerDetalleAccesorios
 } from './informes.js';
 
-// Sistema de PDFs (versión automática)
+// Sistema de PDFs (con modal de vista previa)
 import {
   inicializarSistemaPDF,
-  descargarPDF,
+  abrirVistaPreviaPDF,
+  cerrarModal,
+  descargarPDFDesdeModal,
   compartirWhatsApp
 } from './pdf.js';
 
@@ -131,7 +133,9 @@ window.PresupuestadorAPI = {
   calcularInformesEconomicos,
   
   // Generación de PDFs
-  descargarPDF,
+  abrirVistaPreviaPDF,
+  cerrarModal,
+  descargarPDFDesdeModal,
   compartirWhatsApp,
   
   // Utilidades

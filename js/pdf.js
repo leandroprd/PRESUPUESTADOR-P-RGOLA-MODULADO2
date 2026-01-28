@@ -1,12 +1,6 @@
 /**
  * SISTEMA PDF PROFESIONAL CON PAGINACIÓN A4
- * =================================================================
- * - Logo Galisur en cabecera
- * - Paginación real A4 (210x297mm)
- * - Cabecera y pie repetidos en cada página
- * - Tabla con thead repetido
- * - SVG del esquema incluido
- * - Márgenes profesionales
+ * Versión simplificada - html2pdf maneja los saltos automáticamente
  */
 
 import { 
@@ -20,74 +14,46 @@ import {
   precioFormatearEuro
 } from './utils.js';
 
-// ============================================================================
-// CONFIGURACIÓN
-// ============================================================================
-
-const CONFIG_PDF = {
-  FILAS_PAGINA_1: 15,        // Filas en página 1 (tiene esquema)
-  FILAS_PAGINA_RESTO: 25,    // Filas en páginas siguientes
-  LOGO_PATH: './js/logo.png',
-  LOGO_ANCHO_MM: 45          // Ancho del logo en mm
-};
-
 // Variables globales
 let logoBase64 = null;
 let modalAbierto = false;
 let tipoDocumentoActual = 'material';
+
+const CONFIG_PDF = {
+  LOGO_PATH: './js/logo.png',
+  LOGO_ANCHO_MM: 30
+};
 
 // ============================================================================
 // INICIALIZACIÓN
 // ============================================================================
 
 export async function inicializarSistemaPDF() {
-  // Cargar logo
   await cargarLogo();
   
-  // Configurar botones
   const btnVistaPrevia = document.getElementById('btnVistaPreviaPDF');
   const btnWhatsApp = document.getElementById('btnCompartirWhatsApp');
   const btnCerrarModal = document.getElementById('btnCerrarModal');
   const btnCerrarModalFooter = document.getElementById('btnCerrarModalFooter');
   const btnDescargarDesdeModal = document.getElementById('btnDescargarDesdeModal');
 
-  if (btnVistaPrevia) {
-    btnVistaPrevia.addEventListener('click', abrirVistaPreviaPDF);
-  }
+  if (btnVistaPrevia) btnVistaPrevia.addEventListener('click', abrirVistaPreviaPDF);
+  if (btnWhatsApp) btnWhatsApp.addEventListener('click', compartirWhatsApp);
+  if (btnCerrarModal) btnCerrarModal.addEventListener('click', cerrarModal);
+  if (btnCerrarModalFooter) btnCerrarModalFooter.addEventListener('click', cerrarModal);
+  if (btnDescargarDesdeModal) btnDescargarDesdeModal.addEventListener('click', descargarPDFDesdeModal);
 
-  if (btnWhatsApp) {
-    btnWhatsApp.addEventListener('click', compartirWhatsApp);
-  }
-
-  if (btnCerrarModal) {
-    btnCerrarModal.addEventListener('click', cerrarModal);
-  }
-
-  if (btnCerrarModalFooter) {
-    btnCerrarModalFooter.addEventListener('click', cerrarModal);
-  }
-
-  if (btnDescargarDesdeModal) {
-    btnDescargarDesdeModal.addEventListener('click', descargarPDFDesdeModal);
-  }
-
-  // Cerrar modal con overlay
   const overlay = document.querySelector('.pdf-modal-overlay');
-  if (overlay) {
-    overlay.addEventListener('click', cerrarModal);
-  }
+  if (overlay) overlay.addEventListener('click', cerrarModal);
 
   console.log('✅ Sistema PDF profesional inicializado');
 }
 
-/**
- * Carga el logo y lo convierte a base64
- */
 async function cargarLogo() {
   try {
     const response = await fetch(CONFIG_PDF.LOGO_PATH);
     if (!response.ok) {
-      console.warn('⚠️ Logo no encontrado en', CONFIG_PDF.LOGO_PATH);
+      console.warn('⚠️ Logo no encontrado');
       return;
     }
     
@@ -98,7 +64,7 @@ async function cargarLogo() {
       reader.readAsDataURL(blob);
     });
     
-    console.log('✅ Logo cargado correctamente');
+    console.log('✅ Logo cargado');
   } catch (error) {
     console.error('❌ Error al cargar logo:', error);
   }
@@ -114,14 +80,12 @@ export function abrirVistaPreviaPDF() {
   const tipo = obtenerTipoDocumento();
   tipoDocumentoActual = tipo;
 
-  // Generar documento paginado
   const htmlPaginado = generarDocumentoPaginado(tipo);
   if (!htmlPaginado) {
     alert('No hay datos calculados. Por favor, calcula primero la configuración.');
     return;
   }
 
-  // Mostrar en modal
   const modalContent = document.getElementById('pdfPreviewContent');
   if (!modalContent) {
     console.error('❌ No se encuentra el contenedor del modal');
@@ -130,12 +94,11 @@ export function abrirVistaPreviaPDF() {
 
   modalContent.innerHTML = htmlPaginado;
 
-  // Abrir modal
   const modal = document.getElementById('pdfPreviewModal');
   if (modal) {
     modal.style.display = 'block';
     modalAbierto = true;
-    console.log('✅ Modal abierto con vista previa paginada');
+    console.log('✅ Modal abierto');
   }
 }
 
@@ -144,12 +107,11 @@ export function cerrarModal() {
   if (modal) {
     modal.style.display = 'none';
     modalAbierto = false;
-    console.log('✅ Modal cerrado');
   }
 }
 
 export function descargarPDFDesdeModal() {
-  console.log('📥 Descargando PDF desde modal...');
+  console.log('📥 Descargando PDF...');
 
   const modalContent = document.getElementById('pdfPreviewContent');
   if (!modalContent) {
@@ -168,11 +130,10 @@ export function compartirWhatsApp() {
   const htmlPaginado = generarDocumentoPaginado(tipo);
   
   if (!htmlPaginado) {
-    alert('No hay datos calculados. Por favor, calcula primero la configuración.');
+    alert('No hay datos calculados.');
     return;
   }
 
-  // Crear contenedor temporal
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = htmlPaginado;
   tempDiv.style.position = 'absolute';
@@ -187,14 +148,11 @@ export function compartirWhatsApp() {
 }
 
 // ============================================================================
-// GENERACIÓN DE DOCUMENTO PAGINADO
+// GENERACIÓN DE DOCUMENTO
 // ============================================================================
 
-/**
- * Genera el documento completo con paginación profesional
- */
 function generarDocumentoPaginado(tipo) {
-  console.log('📄 Generando documento paginado:', tipo);
+  console.log('📄 Generando documento:', tipo);
 
   const informe = obtenerUltimoInforme();
   if (!informe) {
@@ -205,7 +163,6 @@ function generarDocumentoPaginado(tipo) {
   const totales = obtenerTotales();
   const datos = leerDatosContexto();
 
-  // Solo procesamos presupuesto por ahora (el más complejo)
   if (tipo === 'material') {
     return generarPresupuestoPaginado(informe, totales, datos);
   } else if (tipo === 'corte') {
@@ -215,92 +172,62 @@ function generarDocumentoPaginado(tipo) {
   }
 }
 
-/**
- * Genera el presupuesto con paginación A4
- */
 function generarPresupuestoPaginado(informe, totales, datos) {
-  const materiales = informe.detalleMaterial || [];
-  const paginasHTML = [];
+  if (!informe || !informe.detalleMaterial || informe.detalleMaterial.length === 0) {
+    console.error('❌ No hay materiales en el informe');
+    return null;
+  }
+
+  const materiales = informe.detalleMaterial;
+  console.log('📊 Generando presupuesto con', materiales.length, 'materiales');
   
-  let filaActual = 0;
-  let numeroPagina = 1;
-
-  // PÁGINA 1: Datos + Esquema + Primeras filas de tabla
-  const filasPagina1 = materiales.slice(0, CONFIG_PDF.FILAS_PAGINA_1);
-  paginasHTML.push(generarPagina1Presupuesto(filasPagina1, datos, numeroPagina));
-  filaActual = CONFIG_PDF.FILAS_PAGINA_1;
-  numeroPagina++;
-
-  // PÁGINAS SIGUIENTES: Solo tabla
-  while (filaActual < materiales.length) {
-    const filasPagina = materiales.slice(filaActual, filaActual + CONFIG_PDF.FILAS_PAGINA_RESTO);
-    const esUltimaPagina = (filaActual + CONFIG_PDF.FILAS_PAGINA_RESTO) >= materiales.length;
-    
-    paginasHTML.push(
-      generarPaginaSiguientePresupuesto(filasPagina, datos, numeroPagina, esUltimaPagina, totales)
-    );
-    
-    filaActual += CONFIG_PDF.FILAS_PAGINA_RESTO;
-    numeroPagina++;
-  }
-
-  // Si no hubo páginas adicionales, añadir totales a página 1
-  if (paginasHTML.length === 1) {
-    paginasHTML[0] = paginasHTML[0].replace(
-      '</section>',
-      `${generarBloqueTotales(totales)}</section>`
-    );
-  }
-
-  return `<div class="pdf-documento-multipagina">${paginasHTML.join('')}</div>`;
-}
-
-/**
- * Genera la primera página del presupuesto
- */
-function generarPagina1Presupuesto(filas, datos, numPagina) {
-  return `
+  const htmlCompleto = `
     <div class="pdf-page-a4">
-      ${generarCabecera(datos, numPagina, 'PRESUPUESTO PÉRGOLA BIOCLIMÁTICA · DOHA SUN')}
+      ${generarCabecera(datos, 1, 'PRESUPUESTO PÉRGOLA BIOCLIMÁTICA · DOHA SUN')}
       
       <section class="pdf-content-a4">
         ${generarBloqueDatosPresupuesto(datos)}
         ${generarBloqueEsquema()}
-        ${generarTablaInicio(filas)}
+        
+        <div class="pdf-bloque-tabla">
+          <h2 class="pdf-titulo-tabla-ref">Informe de material</h2>
+          <div class="pdf-subtitulo-tabla-ref">• <strong>Acabado general:</strong> blanco</div>
+          
+          <table class="pdf-tabla-materiales">
+            <thead>
+              <tr>
+                <th style="width: 8%;">TIPO</th>
+                <th style="width: 8%;">REF.</th>
+                <th style="width: 24%;">DESCRIPCIÓN</th>
+                <th style="width: 12%;">ACABADO</th>
+                <th style="width: 8%;">REF. ACABADO</th>
+                <th style="width: 10%;">LONG. BARRA (M)</th>
+                <th style="width: 10%;">Nº BARRAS / UDS</th>
+                <th style="width: 10%;">PRECIO UNIT.</th>
+                <th style="width: 10%;">IMPORTE</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${generarFilasTabla(materiales)}
+            </tbody>
+          </table>
+        </div>
+        
+        ${generarBloqueTotales(totales)}
       </section>
       
-      ${generarPie(numPagina)}
+      ${generarPie(1)}
     </div>
   `;
-}
 
-/**
- * Genera páginas siguientes del presupuesto
- */
-function generarPaginaSiguientePresupuesto(filas, datos, numPagina, esUltima, totales) {
-  const totalesHTML = esUltima ? generarBloqueTotales(totales) : '';
-  
-  return `
-    <div class="pdf-page-a4">
-      ${generarCabecera(datos, numPagina, 'PRESUPUESTO PÉRGOLA BIOCLIMÁTICA · DOHA SUN')}
-      
-      <section class="pdf-content-a4">
-        ${generarTablaContinuacion(filas)}
-        ${totalesHTML}
-      </section>
-      
-      ${generarPie(numPagina)}
-    </div>
-  `;
+  console.log('✅ HTML generado');
+  return `<div class="pdf-documento-multipagina">${htmlCompleto}</div>`;
 }
 
 // ============================================================================
 // COMPONENTES DEL DOCUMENTO
 // ============================================================================
 
-/**
- * Genera la cabecera repetible con formato del PDF de referencia
- */
 function generarCabecera(datos, numPagina, titulo) {
   const logoHTML = logoBase64 
     ? `<img src="${logoBase64}" class="pdf-logo-ref" alt="Logo Galisur" />`
@@ -327,9 +254,6 @@ function generarCabecera(datos, numPagina, titulo) {
   `;
 }
 
-/**
- * Genera el bloque de datos del presupuesto con formato de referencia
- */
 function generarBloqueDatosPresupuesto(datos) {
   return `
     <div class="pdf-resumen-config-ref">
@@ -363,58 +287,50 @@ function generarBloqueDatosPresupuesto(datos) {
   `;
 }
 
-/**
- * Genera el bloque del esquema SVG
- */
 function generarBloqueEsquema() {
-  // Buscar el SVG en varios contenedores posibles
-  let svgContent = '';
+  let svgElement = null;
   
-  // Intentar primero con svg-container
-  let svgWeb = document.getElementById('svg-container');
+  const svgContainer = document.getElementById('svg-container');
+  if (svgContainer && svgContainer.querySelector('svg')) {
+    svgElement = svgContainer.querySelector('svg');
+  }
   
-  // Si no existe, buscar cualquier SVG en la tarjeta 4
-  if (!svgWeb || !svgWeb.innerHTML.trim()) {
-    // Buscar en la tarjeta de vista esquemática
-    const tarjetas = document.querySelectorAll('.card');
-    for (const tarjeta of tarjetas) {
-      const titulo = tarjeta.querySelector('.card-title');
-      if (titulo && titulo.textContent.includes('Vista esquemática')) {
-        const svg = tarjeta.querySelector('svg');
-        if (svg) {
-          svgWeb = svg.parentElement;
-          break;
-        }
+  if (!svgElement) {
+    const cards = document.querySelectorAll('.card');
+    for (const card of cards) {
+      const title = card.querySelector('.card-title');
+      if (title && title.textContent.includes('Vista esquemática')) {
+        svgElement = card.querySelector('svg');
+        if (svgElement) break;
       }
     }
   }
   
-  // Si no existe, buscar cualquier SVG visible en la página
-  if (!svgWeb || !svgWeb.innerHTML.trim()) {
+  if (!svgElement) {
     const svgs = document.querySelectorAll('svg');
     for (const svg of svgs) {
-      // Verificar que el SVG es visible y tiene contenido
       const rect = svg.getBoundingClientRect();
-      if (rect.width > 100 && rect.height > 100) {
-        svgWeb = svg.parentElement;
+      if (rect.width > 400 && rect.height > 400) {
+        svgElement = svg;
         break;
       }
     }
   }
   
-  if (svgWeb && svgWeb.innerHTML.trim()) {
-    svgContent = svgWeb.innerHTML;
+  let svgContent = '';
+  
+  if (svgElement) {
+    const svgClone = svgElement.cloneNode(true);
+    svgClone.setAttribute('width', '160mm');
+    svgClone.setAttribute('height', 'auto');
+    svgClone.style.display = 'block';
+    svgClone.style.maxWidth = '100%';
     
-    // Ajustar tamaño del SVG
-    svgContent = svgContent.replace(
-      /<svg/g,
-      '<svg style="max-width: 100%; height: auto; display: block;"'
-    );
-    
-    console.log('✅ SVG encontrado y copiado');
+    svgContent = svgClone.outerHTML;
+    console.log('✅ SVG encontrado');
   } else {
     svgContent = '<div class="pdf-esquema-placeholder">Esquema no disponible</div>';
-    console.warn('⚠️ No se encontró el SVG del esquema');
+    console.warn('⚠️ SVG no encontrado');
   }
 
   return `
@@ -426,68 +342,6 @@ function generarBloqueEsquema() {
   `;
 }
 
-/**
- * Genera el inicio de la tabla (con thead)
- */
-function generarTablaInicio(filas) {
-  return `
-    <div class="pdf-bloque-tabla">
-      <h2 class="pdf-titulo-tabla-ref">Informe de material</h2>
-      <div class="pdf-subtitulo-tabla-ref">• <strong>Acabado general:</strong> blanco</div>
-      
-      <table class="pdf-tabla-materiales">
-        <thead>
-          <tr>
-            <th style="width: 8%;">TIPO</th>
-            <th style="width: 8%;">REF.</th>
-            <th style="width: 24%;">DESCRIPCIÓN</th>
-            <th style="width: 12%;">ACABADO</th>
-            <th style="width: 8%;">REF. ACABADO</th>
-            <th style="width: 10%;">LONG. BARRA (M)</th>
-            <th style="width: 10%;">Nº BARRAS / UDS</th>
-            <th style="width: 10%;">PRECIO UNIT.</th>
-            <th style="width: 10%;">IMPORTE</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${generarFilasTabla(filas)}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-/**
- * Genera continuación de tabla (con thead repetido)
- */
-function generarTablaContinuacion(filas) {
-  return `
-    <div class="pdf-bloque-tabla">
-      <table class="pdf-tabla-materiales">
-        <thead>
-          <tr>
-            <th style="width: 8%;">TIPO</th>
-            <th style="width: 8%;">REF.</th>
-            <th style="width: 24%;">DESCRIPCIÓN</th>
-            <th style="width: 12%;">ACABADO</th>
-            <th style="width: 8%;">REF. ACABADO</th>
-            <th style="width: 10%;">LONG. BARRA (M)</th>
-            <th style="width: 10%;">Nº BARRAS / UDS</th>
-            <th style="width: 10%;">PRECIO UNIT.</th>
-            <th style="width: 10%;">IMPORTE</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${generarFilasTabla(filas)}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-/**
- * Genera las filas de la tabla
- */
 function generarFilasTabla(filas) {
   return filas.map(item => `
     <tr>
@@ -504,9 +358,6 @@ function generarFilasTabla(filas) {
   `).join('');
 }
 
-/**
- * Genera el bloque de totales con formato de referencia
- */
 function generarBloqueTotales(totales) {
   if (!totales) return '';
 
@@ -529,9 +380,6 @@ function generarBloqueTotales(totales) {
   `;
 }
 
-/**
- * Genera el pie de página
- */
 function generarPie(numPagina) {
   return `
     <footer class="pdf-footer-a4">
@@ -542,11 +390,10 @@ function generarPie(numPagina) {
 }
 
 // ============================================================================
-// DOCUMENTOS SIMPLIFICADOS (Hoja de corte y Peso)
+// DOCUMENTOS SIMPLIFICADOS
 // ============================================================================
 
 function generarHojaCortePaginada(informe, datos) {
-  // Similar pero más simple - una sola página normalmente
   return `
     <div class="pdf-documento-multipagina">
       <div class="pdf-page-a4">
@@ -579,36 +426,24 @@ function generarPesoPerimetrosPaginado(informe, totales, datos) {
 function generarPatronesCorte(informe) {
   if (!informe.detalleHojaCorte) return '<p>No hay datos de corte</p>';
 
-  let html = '<div class="pdf-bloque-tabla"><h3 class="pdf-seccion-titulo">Patrones de corte</h3>';
+  let html = '<div class="pdf-bloque-tabla"><h3 class="pdf-titulo-tabla-ref">Patrones de corte</h3>';
   
   informe.detalleHojaCorte.forEach(perfil => {
     html += `
-      <div style="margin-bottom: 1rem; padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 4px;">
-        <h4 style="font-size: 11pt; margin: 0 0 0.25rem; color: #1f2937;">
-          ${perfil.ref} - ${perfil.descripcion}
-        </h4>
-        <p style="font-size: 9pt; margin: 0 0 0.5rem; color: #6b7280;">
-          Acabado: ${perfil.acabado}
-        </p>
+      <div style="margin-bottom: 1rem; padding: 0.5rem; border: 1px solid #e5e7eb;">
+        <h4 style="font-size: 11pt; margin: 0;">${perfil.ref} - ${perfil.descripcion}</h4>
+        <p style="font-size: 9pt; color: #6b7280;">Acabado: ${perfil.acabado}</p>
     `;
 
     if (perfil.barras) {
       perfil.barras.forEach((barra, idx) => {
         const piezasStr = barra.piezas.map(p => `${p}mm`).join(', ');
         html += `
-          <div style="font-size: 9pt; padding: 0.25rem 0.5rem; background: #f9fafb; margin-bottom: 0.25rem;">
-            <strong>Barra ${idx + 1}:</strong> ${(barra.longitud / 1000).toFixed(1)}m → 
-            ${barra.piezas.length} piezas: ${piezasStr} 
-            · Desperdicio: ${barra.desperdicio ? barra.desperdicio.toFixed(0) : 0}mm
+          <div style="font-size: 9pt; padding: 0.25rem; background: #f9fafb;">
+            <strong>Barra ${idx + 1}:</strong> ${barra.piezas.length} piezas: ${piezasStr}
           </div>
         `;
       });
-      
-      html += `
-        <p style="font-size: 9pt; margin: 0.5rem 0 0; font-weight: 600;">
-          Total: ${perfil.totalBarras || 0} barras · ${perfil.totalPiezas || 0} piezas
-        </p>
-      `;
     }
     
     html += `</div>`;
@@ -619,19 +454,18 @@ function generarPatronesCorte(informe) {
 }
 
 function generarTablaPeso(informe, totales) {
-  if (!informe.detallePesoPerimetro) return '<p>No hay datos de peso</p>';
+  if (!informe.detallePesoPerimetro) return '<p>No hay datos</p>';
 
   let html = `
     <div class="pdf-bloque-tabla">
-      <h3 class="pdf-seccion-titulo">Peso y perímetros por perfil</h3>
+      <h3 class="pdf-titulo-tabla-ref">Peso y perímetros</h3>
       <table class="pdf-tabla-materiales">
         <thead>
           <tr>
-            <th style="width: 15%;">Ref.</th>
-            <th style="width: 35%;">Descripción</th>
-            <th style="width: 20%;">Acabado</th>
-            <th style="width: 15%;">Peso total (kg)</th>
-            <th style="width: 15%;">Perímetro (mm)</th>
+            <th>Ref.</th>
+            <th>Descripción</th>
+            <th>Peso (kg)</th>
+            <th>Perímetro (mm)</th>
           </tr>
         </thead>
         <tbody>
@@ -640,37 +474,15 @@ function generarTablaPeso(informe, totales) {
   informe.detallePesoPerimetro.forEach(item => {
     html += `
       <tr>
-        <td>${item.ref || '—'}</td>
-        <td>${item.descripcion || '—'}</td>
-        <td>${item.acabado || '—'}</td>
-        <td style="text-align: right;">${item.pesoTotal !== undefined ? item.pesoTotal.toFixed(2) : '—'}</td>
-        <td style="text-align: right;">${item.perimetroTotal !== undefined ? item.perimetroTotal.toFixed(0) : '—'}</td>
+        <td>${item.ref}</td>
+        <td>${item.descripcion}</td>
+        <td>${item.pesoTotal.toFixed(2)}</td>
+        <td>${item.perimetroTotal.toFixed(0)}</td>
       </tr>
     `;
   });
 
-  html += `
-        </tbody>
-      </table>
-    </div>
-  `;
-
-  // Totales
-  if (totales) {
-    html += `
-      <div class="pdf-bloque-totales">
-        <div class="pdf-total-fila pdf-total-destacado">
-          <span>Peso total estructura:</span>
-          <span>${totales.pesoTotal !== undefined ? totales.pesoTotal.toFixed(2) : '0.00'} kg</span>
-        </div>
-        <div class="pdf-total-fila">
-          <span>Perímetro total:</span>
-          <span>${totales.perimetroTotal !== undefined ? totales.perimetroTotal.toFixed(0) : '0'} mm</span>
-        </div>
-      </div>
-    `;
-  }
-
+  html += `</tbody></table></div>`;
   return html;
 }
 
@@ -691,7 +503,6 @@ function leerDatosContexto() {
   const modulos = variosModulos ? parseInt(document.getElementById('numModulos')?.value, 10) || 1 : 1;
   
   const tipoMontajeTexto = document.getElementById('tipoMontaje')?.selectedOptions[0]?.text || '';
-  
   const numPilaresText = document.getElementById('numPilaresCalc')?.textContent || '0';
   const numPilares = parseInt(numPilaresText, 10) || 0;
   
@@ -752,7 +563,7 @@ function exportarAPdf(elemento, nombreArchivo) {
     return;
   }
 
-  console.log('🚀 Generando PDF con paginación A4...');
+  console.log('🚀 Generando PDF...');
 
   const opt = {
     margin: 0,
@@ -769,8 +580,7 @@ function exportarAPdf(elemento, nombreArchivo) {
       orientation: 'portrait'
     },
     pagebreak: {
-      mode: ['avoid-all', 'css', 'legacy'],
-      before: '.pdf-page-a4'
+      mode: ['avoid-all', 'css', 'legacy']
     }
   };
 
@@ -779,18 +589,16 @@ function exportarAPdf(elemento, nombreArchivo) {
     .from(elemento)
     .save()
     .then(() => {
-      console.log('✅ PDF generado correctamente:', nombreArchivo);
+      console.log('✅ PDF generado');
     })
     .catch(error => {
-      console.error('❌ Error al generar PDF:', error);
-      alert('Error al generar el PDF.');
+      console.error('❌ Error:', error);
     });
 }
 
 function generarPdfYCompartir(elemento, nombreArchivo, tipo, callback) {
   if (typeof html2pdf === 'undefined') {
-    console.error('❌ html2pdf no está cargado');
-    alert('Error: Librería de PDF no encontrada.');
+    console.error('❌ html2pdf no cargado');
     return;
   }
 
@@ -798,20 +606,8 @@ function generarPdfYCompartir(elemento, nombreArchivo, tipo, callback) {
     margin: 0,
     filename: nombreArchivo,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { 
-      scale: 2,
-      useCORS: true,
-      logging: false
-    },
-    jsPDF: { 
-      unit: 'mm',
-      format: 'a4',
-      orientation: 'portrait'
-    },
-    pagebreak: {
-      mode: ['avoid-all', 'css', 'legacy'],
-      before: '.pdf-page-a4'
-    }
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
   html2pdf()
@@ -819,21 +615,19 @@ function generarPdfYCompartir(elemento, nombreArchivo, tipo, callback) {
     .from(elemento)
     .save()
     .then(() => {
-      console.log('✅ PDF generado, abriendo WhatsApp...');
-
       if (callback) callback();
 
       let tipoTexto = 'Presupuesto';
       if (tipo === 'corte') tipoTexto = 'Hoja de corte';
       if (tipo === 'peso') tipoTexto = 'Peso y perímetros';
 
-      const mensaje = `${tipoTexto} - Pérgola Bioclimática DOHA SUN\n\nAdjunto encontrarás el documento ${nombreArchivo}`;
+      const mensaje = `${tipoTexto} - Pérgola Bioclimática DOHA SUN\n\nAdjunto: ${nombreArchivo}`;
       const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
 
       window.open(url, '_blank');
     })
     .catch(error => {
-      console.error('❌ Error al generar PDF:', error);
+      console.error('❌ Error:', error);
       if (callback) callback();
     });
 }

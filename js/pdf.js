@@ -15,6 +15,11 @@ import {
   precioFormatearEuro
 } from './utils.js';
 
+import {
+  calcularNumeroLamas,
+  DESCRIPCIONES_MONT
+} from './calculosPergola.js';
+
 // Variables globales
 let logoBase64 = null;
 let modalAbierto = false;
@@ -912,34 +917,53 @@ function generarPesoPerimetrosPaginado(informe, totales, datos) {
 // ============================================================================
 
 function leerDatosContexto() {
+  // Datos de cabecera
   const comercial = document.getElementById('comercial')?.value || '';
   const cliente = document.getElementById('cliente')?.value || '';
   const refObra = document.getElementById('refObra')?.value || '';
   
+  // Dimensiones
   const ancho = parseFloat(document.getElementById('ancho')?.value) || 0;
   const salida = parseFloat(document.getElementById('salida')?.value) || 0;
   const altura = parseFloat(document.getElementById('altura')?.value) || 0;
   
-  const variosModulos = document.getElementById('variosModulos')?.checked || false;
-  const modulos = variosModulos ? parseInt(document.getElementById('numModulos')?.value, 10) || 1 : 1;
+  // Módulos
+  const chkVarios = document.getElementById('chkVariosModulos');
+  const variosModulos = chkVarios?.checked || false;
+  const modulos = variosModulos ? parseInt(document.getElementById('modulos')?.value, 10) || 1 : 1;
   
-  const tipoMontajeTexto = document.getElementById('tipoMontaje')?.selectedOptions[0]?.text || '';
-  const numPilaresText = document.getElementById('numPilaresCalc')?.textContent || '0';
+  // Tipo de montaje
+  const tipoMontajeSelect = document.querySelector('input[name="montaje"]:checked');
+  const tipoMontajeValue = tipoMontajeSelect?.value || 'pilares';
+  const tipoMontajeTexto = DESCRIPCIONES_MONT[tipoMontajeValue] || tipoMontajeValue;
+  
+  // Número de pilares (leer del display)
+  const numPilaresText = document.getElementById('pilaresDisplay')?.textContent || '0';
   const numPilares = parseInt(numPilaresText, 10) || 0;
   
+  // Motores
   const modoMotor = document.querySelector('input[name="modoMotor"]:checked')?.value || 'todos-izquierda';
-  const modoMotorTexto = modoMotor === 'todos-izquierda' ? 'Todos a izquierda' 
-    : modoMotor === 'todos-derecha' ? 'Todos a derecha' : 'Personalizado';
+  let modoMotorTexto = '';
+  if (modoMotor === 'todos-izquierda') {
+    modoMotorTexto = 'Configuración: todos a izquierda';
+  } else if (modoMotor === 'todos-derecha') {
+    modoMotorTexto = 'Configuración: todos a derecha';
+  } else {
+    modoMotorTexto = 'Personalizado';
+  }
   
-  const numLamasText = document.getElementById('numLamasDisplay')?.textContent || '0';
-  const numLamas = parseInt(numLamasText, 10) || 0;
+  // Número de lamas (calcular desde salida)
+  const numLamas = calcularNumeroLamas(salida) || 0;
   
-  const mando = document.getElementById('mando')?.value || 'con';
-  const mandoTexto = mando === 'con' ? 'Con mando (1 ud.)' : 'Sin mando';
+  // Mando
+  const mandoValue = document.getElementById('mando')?.value || 'con';
+  const mandoTexto = mandoValue === 'con' ? 'Con mando (1 ud. por instalación).' : 'Sin mando incluido (se definirá aparte).';
   
+  // Referencia de presupuesto
   const codigoElement = document.getElementById('refCodeInline');
-  const codigoPresupuesto = codigoElement ? codigoElement.textContent : generarCodigoRef();
+  const codigoPresupuesto = codigoElement?.textContent?.trim() || generarCodigoRef();
   
+  // Fecha
   const fecha = generarFechaFormateada();
 
   return {

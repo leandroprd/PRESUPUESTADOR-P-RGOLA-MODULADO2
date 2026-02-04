@@ -370,7 +370,40 @@ export function calcularMateriales(auto = false, incluirPilaresRefuerzoParam) {
   const salida = safeNumber(inputSalida.value);
   const ancho = safeNumber(inputAncho.value);
   
-  if (!salida || !ancho || !salidaValida || !anchoValido) {
+  // ========== VALIDACIÓN DE DATOS OBLIGATORIOS ==========
+  
+  // 1. Validar datos de cabecera
+  const comercial = document.getElementById('inputComercial')?.value?.trim();
+  const cliente = document.getElementById('inputCliente')?.value?.trim();
+  const refObra = document.getElementById('inputRefObra')?.value?.trim();
+
+  if (!comercial || !cliente || !refObra) {
+    alert('⚠️ ATENCIÓN: Debes rellenar los siguientes campos obligatorios:\n\n' +
+          '• Comercial\n' +
+          '• Cliente\n' +
+          '• Ref. obra\n\n' +
+          'Antes de calcular materiales y generar documentos.');
+    precioLimpiarUI();
+    limpiarInformesEconomicos();
+    return;
+  }
+
+  // 2. Validar dimensiones de pérgola
+  const altura = safeNumber(inputAltura.value);
+  
+  if (!salida || !ancho || !altura) {
+    alert('⚠️ ATENCIÓN: Debes rellenar las siguientes dimensiones:\n\n' +
+          '• Salida (m)\n' +
+          '• Ancho (m)\n' +
+          '• Altura libre (m)\n\n' +
+          'Antes de calcular materiales.');
+    precioLimpiarUI();
+    limpiarInformesEconomicos();
+    return;
+  }
+  
+  // 3. Validar que las dimensiones sean válidas (rangos correctos)
+  if (!salidaValida || !anchoValido) {
     precioLimpiarUI();
     return;
   }
@@ -394,8 +427,6 @@ export function calcularMateriales(auto = false, incluirPilaresRefuerzoParam) {
   const pilares = calcularPilares(modulos, tipoMontaje, tipoEntre);
   const pilaresRefuerzo = contarPilaresRefuerzo(tipoMontaje, incluirPilaresRefuerzo, tipoEntre);
   const pilaresTotales = pilares + pilaresRefuerzo;
-  
-  const altura = safeNumber(inputAltura.value);
   
   const ladosMotores = obtenerLadosMotores(modulos, modoMotor);
 
@@ -678,6 +709,14 @@ export function inicializarApp() {
   desactivarAutocompletado();
   resetear();
   inicializarNumeroPresupuesto();
+  
+  // Forzar selector de documento a "Informe de material" por defecto
+  const selectorDoc = document.getElementById('selectorDocumento');
+  if (selectorDoc) {
+    selectorDoc.value = 'material';
+    // Disparar evento change para actualizar visibilidad de informes
+    actualizarVisibilidadInformes();
+  }
 
   // Manejar navegación con caché
   window.addEventListener("pageshow", evt => {

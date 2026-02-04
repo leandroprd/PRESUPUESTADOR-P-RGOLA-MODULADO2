@@ -135,6 +135,23 @@ export async function descargarPDFDesdeModal() {
   try {
     // Extraer datos del HTML
     const datos = extraerDatosDelModal(modalContent);
+    
+    // VALIDACIÓN: Verificar que comercial, cliente y ref obra están rellenos
+    if (!datos.comercial || datos.comercial === '—' || !datos.comercial.trim()) {
+      alert('⚠️ ATENCIÓN: Debes rellenar el campo "Comercial" antes de generar el documento.');
+      return;
+    }
+    
+    if (!datos.cliente || datos.cliente === '—' || !datos.cliente.trim()) {
+      alert('⚠️ ATENCIÓN: Debes rellenar el campo "Cliente" antes de generar el documento.');
+      return;
+    }
+    
+    if (!datos.refObra || datos.refObra === '—' || !datos.refObra.trim()) {
+      alert('⚠️ ATENCIÓN: Debes rellenar el campo "Ref. obra" antes de generar el documento.');
+      return;
+    }
+    
     const materiales = extraerMaterialesDelModal(modalContent);
     const totales = extraerTotalesDelModal(modalContent);
     
@@ -172,17 +189,11 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
     }
   }
 
-  // Título empresa
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(3, 105, 161); // Azul
-  doc.text('ALUMINIOS GALISUR', 55, y + 8);
-
-  // Subtítulo
+  // Título (minimalista - solo "Presupuesto Pérgola Bioclimática · Doha Sun")
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(11);
   doc.setTextColor(107, 114, 128); // Gris
-  doc.text('PRESUPUESTO PÉRGOLA BIOCLIMÁTICA · DOHA SUN', 55, y + 14);
+  doc.text('Presupuesto Pérgola Bioclimática · Doha Sun', 55, y + 10);
 
   // Fecha
   doc.setTextColor(31, 41, 55);
@@ -201,14 +212,6 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   doc.setFontSize(13);
   doc.setTextColor(31, 41, 55);
   doc.text('Resumen de configuración', marginX, y);
-
-  // Badge "PREVIO A MATERIALES"
-  doc.setFillColor(219, 234, 254); // Azul claro
-  doc.setTextColor(30, 64, 175); // Azul oscuro
-  doc.roundedRect(pageWidth - marginX - 45, y - 5, 45, 8, 2, 2, 'F');
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.text('PREVIO A MATERIALES', pageWidth - marginX - 22.5, y, { align: 'center' });
 
   y += 7;
 
@@ -313,33 +316,39 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   doc.text('• Acabado general: blanco', marginX, y);
   y += 2;
 
-  // Tabla con autotable
-  const columnasTabla = [
-    { header: 'TIPO', dataKey: 'tipo' },
-    { header: 'REF.', dataKey: 'ref' },
-    { header: 'DESCRIPCIÓN', dataKey: 'descripcion' },
-    { header: 'ACABADO', dataKey: 'acabado' },
-    { header: 'REF. ACABADO', dataKey: 'refAcabado' },
-    { header: 'LONG. BARRA (M)', dataKey: 'longitudBarra' },
-    { header: 'Nº BARRAS / UDS', dataKey: 'numBarras' },
-    { header: 'PRECIO UNIT.', dataKey: 'precioUnit' },
-    { header: 'IMPORTE', dataKey: 'importe' }
-  ];
-
+  // Tabla con autotable - headers con unidades
   doc.autoTable({
     startY: y,
-    head: [columnasTabla.map(c => c.header)],
-    body: materiales.map(m => [
-      m.tipo,
-      m.ref,
-      m.descripcion,
-      m.acabado,
-      'SIN ESPECIFICAR',
-      m.longitudBarra,
-      m.numBarras,
-      m.precioUnit,
-      m.importe
-    ]),
+    head: [[
+      'TIPO',
+      'REF.',
+      'DESCRIPCIÓN',
+      'ACABADO',
+      'REF. ACABADO',
+      'LONG. BARRA (m)',
+      'Nº BARRAS / UDS',
+      'PRECIO UNIT. (€)',
+      'IMPORTE (€)'
+    ]],
+    body: materiales.map(m => {
+      // Extraer solo los números, sin unidades
+      const longBarra = m.longitudBarra.replace(/[^\d.,]/g, '').replace('.', ',');
+      const numBarras = m.numBarras.replace(/[^\d]/g, '');
+      const precioUnit = m.precioUnit.replace(/[^\d.,]/g, '').replace('.', ',');
+      const importe = m.importe.replace(/[^\d.,]/g, '').replace('.', ',');
+      
+      return [
+        m.tipo,
+        m.ref,
+        m.descripcion,
+        m.acabado,
+        'SIN ESPECIFICAR',
+        longBarra,
+        numBarras,
+        precioUnit,
+        importe
+      ];
+    }),
     styles: {
       fontSize: 8,
       cellPadding: 1.5,
@@ -357,7 +366,13 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
       fillColor: [250, 250, 250]
     },
     margin: { left: marginX, right: marginX },
-    tableWidth: contentWidth
+    tableWidth: contentWidth,
+    columnStyles: {
+      5: { halign: 'right' }, // Long. barra
+      6: { halign: 'right' }, // Nº barras
+      7: { halign: 'right' }, // Precio unit.
+      8: { halign: 'right' }  // Importe
+    }
   });
 
   y = doc.lastAutoTable.finalY + 8;
@@ -429,6 +444,18 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
 // ============================================================================
 // CONVERSIÓN SVG A IMAGEN
 // ============================================================================
+
+// Función auxiliar para formatear números con coma
+function formatearNumeroConComa(numero) {
+  if (typeof numero === 'string') {
+    // Si ya es string, reemplazar punto por coma
+    return numero.replace('.', ',');
+  }
+  if (typeof numero === 'number') {
+    return numero.toFixed(2).replace('.', ',');
+  }
+  return numero;
+}
 
 async function convertirSVGaImagen(modalContent) {
   const svg = modalContent.querySelector('svg');
@@ -688,8 +715,7 @@ function generarCabecera(datos, numPagina, titulo) {
           ${logoHTML}
         </div>
         <div class="pdf-header-ref-centro">
-          <div class="pdf-empresa-ref">ALUMINIOS GALISUR</div>
-          <div class="pdf-subtitulo-ref">PRESUPUESTO PÉRGOLA BIOCLIMÁTICA · DOHA SUN</div>
+          <div class="pdf-subtitulo-ref">Presupuesto Pérgola Bioclimática · Doha Sun</div>
         </div>
         <div class="pdf-header-ref-right">
           ${fechaFormateada}
@@ -708,7 +734,6 @@ function generarBloqueDatosPresupuesto(datos) {
           <h2 class="pdf-titulo-seccion-ref">Resumen de configuración</h2>
           <div class="pdf-ref-presupuesto">Ref. presupuesto: ${datos.codigoPresupuesto}</div>
         </div>
-        <div class="pdf-badge-previo">PREVIO A MATERIALES</div>
       </div>
       
       <div class="pdf-datos-comerciales-ref">

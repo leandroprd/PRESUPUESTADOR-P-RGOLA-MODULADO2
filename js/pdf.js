@@ -78,6 +78,26 @@ async function cargarLogo() {
 export function abrirVistaPreviaPDF() {
   console.log('👁️ Abriendo vista previa...');
 
+  // Validar datos obligatorios antes de abrir
+  const comercial = document.getElementById('inputComercial')?.value?.trim() || '';
+  const cliente = document.getElementById('inputCliente')?.value?.trim() || '';
+  const refObra = document.getElementById('inputRefObra')?.value?.trim() || '';
+
+  if (!comercial) {
+    alert('⚠️ ATENCIÓN: Debes rellenar el campo "Comercial" antes de generar la vista previa.');
+    return;
+  }
+
+  if (!cliente) {
+    alert('⚠️ ATENCIÓN: Debes rellenar el campo "Cliente" antes de generar la vista previa.');
+    return;
+  }
+
+  if (!refObra) {
+    alert('⚠️ ATENCIÓN: Debes rellenar el campo "Ref. obra" antes de generar la vista previa.');
+    return;
+  }
+
   const tipo = obtenerTipoDocumento();
   tipoDocumentoActual = tipo;
 
@@ -678,10 +698,10 @@ function generarPresupuestoPaginado(informe, totales, datos) {
                 <th style="width: 24%;">DESCRIPCIÓN</th>
                 <th style="width: 12%;">ACABADO</th>
                 <th style="width: 8%;">REF. ACABADO</th>
-                <th style="width: 10%;">LONG. BARRA (M)</th>
+                <th style="width: 10%;">LONG. BARRA (m)</th>
                 <th style="width: 10%;">Nº BARRAS / UDS</th>
-                <th style="width: 10%;">PRECIO UNIT.</th>
-                <th style="width: 10%;">IMPORTE</th>
+                <th style="width: 10%;">PRECIO UNIT. (€)</th>
+                <th style="width: 10%;">IMPORTE (€)</th>
               </tr>
             </thead>
             <tbody>

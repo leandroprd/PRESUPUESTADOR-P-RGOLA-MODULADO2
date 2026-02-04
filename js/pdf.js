@@ -79,21 +79,39 @@ export function abrirVistaPreviaPDF() {
   console.log('👁️ Abriendo vista previa...');
 
   // Validar datos obligatorios antes de abrir
-  const comercial = document.getElementById('comercial')?.value?.trim() || '';
-  const cliente = document.getElementById('cliente')?.value?.trim() || '';
-  const refObra = document.getElementById('refObra')?.value?.trim() || '';
+  const inputComercial = document.getElementById('comercial');
+  const inputCliente = document.getElementById('cliente');
+  const inputRefObra = document.getElementById('refObra');
+  
+  // Debug: verificar que los elementos existen
+  console.log('Elementos encontrados:', {
+    comercial: !!inputComercial,
+    cliente: !!inputCliente,
+    refObra: !!inputRefObra
+  });
+  
+  const comercial = inputComercial?.value?.trim();
+  const cliente = inputCliente?.value?.trim();
+  const refObra = inputRefObra?.value?.trim();
+  
+  // Debug: verificar valores
+  console.log('Valores leídos:', {
+    comercial: comercial || '(vacío)',
+    cliente: cliente || '(vacío)',
+    refObra: refObra || '(vacío)'
+  });
 
-  if (!comercial) {
+  if (!comercial || comercial === '') {
     alert('⚠️ ATENCIÓN: Debes rellenar el campo "Comercial" antes de generar la vista previa.');
     return;
   }
 
-  if (!cliente) {
+  if (!cliente || cliente === '') {
     alert('⚠️ ATENCIÓN: Debes rellenar el campo "Cliente" antes de generar la vista previa.');
     return;
   }
 
-  if (!refObra) {
+  if (!refObra || refObra === '') {
     alert('⚠️ ATENCIÓN: Debes rellenar el campo "Ref. obra" antes de generar la vista previa.');
     return;
   }

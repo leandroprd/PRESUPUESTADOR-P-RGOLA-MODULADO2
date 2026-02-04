@@ -371,6 +371,7 @@ export function calcularMateriales(auto = false, incluirPilaresRefuerzoParam) {
   const ancho = safeNumber(inputAncho.value);
   
   // ========== VALIDACIÓN DE DATOS OBLIGATORIOS ==========
+  // Solo mostrar alertas si NO es llamada automática (auto = false)
   
   // 1. Validar datos de cabecera
   const comercial = document.getElementById('inputComercial')?.value?.trim();
@@ -378,11 +379,14 @@ export function calcularMateriales(auto = false, incluirPilaresRefuerzoParam) {
   const refObra = document.getElementById('inputRefObra')?.value?.trim();
 
   if (!comercial || !cliente || !refObra) {
-    alert('⚠️ ATENCIÓN: Debes rellenar los siguientes campos obligatorios:\n\n' +
-          '• Comercial\n' +
-          '• Cliente\n' +
-          '• Ref. obra\n\n' +
-          'Antes de calcular materiales y generar documentos.');
+    // Solo mostrar alerta si es llamada MANUAL (desde botón)
+    if (!auto) {
+      alert('⚠️ ATENCIÓN: Debes rellenar los siguientes campos obligatorios:\n\n' +
+            '• Comercial\n' +
+            '• Cliente\n' +
+            '• Ref. obra\n\n' +
+            'Antes de calcular materiales y generar documentos.');
+    }
     precioLimpiarUI();
     limpiarInformesEconomicos();
     return;
@@ -392,11 +396,14 @@ export function calcularMateriales(auto = false, incluirPilaresRefuerzoParam) {
   const altura = safeNumber(inputAltura.value);
   
   if (!salida || !ancho || !altura) {
-    alert('⚠️ ATENCIÓN: Debes rellenar las siguientes dimensiones:\n\n' +
-          '• Salida (m)\n' +
-          '• Ancho (m)\n' +
-          '• Altura libre (m)\n\n' +
-          'Antes de calcular materiales.');
+    // Solo mostrar alerta si es llamada MANUAL (desde botón)
+    if (!auto) {
+      alert('⚠️ ATENCIÓN: Debes rellenar las siguientes dimensiones:\n\n' +
+            '• Salida (m)\n' +
+            '• Ancho (m)\n' +
+            '• Altura libre (m)\n\n' +
+            'Antes de calcular materiales.');
+    }
     precioLimpiarUI();
     limpiarInformesEconomicos();
     return;

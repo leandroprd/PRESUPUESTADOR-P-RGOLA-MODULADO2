@@ -149,7 +149,8 @@ function prepararDetalleMaterial(materiales, piezasPerfiles, precios, config, re
         Object.entries(opt.barrasPorLongitud).forEach(([longMm, cant]) => {
           totalBarras += cant;
           const longM = Number(longMm) / 1000;
-          longitudesInfo.push(`${longM.toFixed(1)}m (${cant})`);
+          // Sin "m", con coma decimal
+          longitudesInfo.push(`${longM.toFixed(1).replace('.', ',')} (${cant})`);
           importe += longM * cant * precioM;
         });
         longitudesBarraStr = longitudesInfo.join(", ");
@@ -165,7 +166,7 @@ function prepararDetalleMaterial(materiales, piezasPerfiles, precios, config, re
         refAcabado,
         longitudBarra: longitudesBarraStr,
         numBarras: totalBarras > 0 ? totalBarras : "—",
-        precioUnitario: precioM > 0 ? `${precioM.toFixed(2)} €/m` : "—",
+        precioUnitario: precioM > 0 ? precioM.toFixed(2).replace('.', ',') : "—",
         importe
       });
 
@@ -190,7 +191,7 @@ function prepararDetalleMaterial(materiales, piezasPerfiles, precios, config, re
         refAcabado,
         longitudBarra: "—",
         numBarras: cantidad,
-        precioUnitario: precioUnit > 0 ? `${precioUnit.toFixed(2)} €/ud` : "—",
+        precioUnitario: precioUnit > 0 ? precioUnit.toFixed(2).replace('.', ',') : "—",
         importe
       });
     }

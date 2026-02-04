@@ -1,625 +1,960 @@
 /**
- * GESTIÓN DE INFORMES ECONÓMICOS
- * =================================================================
- * Este módulo contiene las funciones relacionadas con:
- * - Cálculo de informes de material, peso/perímetro y hoja de corte
- * - Renderizado de los 3 tipos de documentos
- * - Gestión de datos para visualización y exportación
+ * SISTEMA PDF HÍBRIDO
+ * - Vista previa: HTML (mantiene calidad visual)
+ * - Descarga: jsPDF (control total)
  */
 
-// Importar constantes y funciones necesarias
 import { 
-  precio_perfiles, 
-  precio_accesorios, 
-  TIPO_MATERIAL,
-  MARGEN_PUNTA_MM,
-  MERMA_CORTE_MM
-} from './config.js';
+  obtenerUltimoInforme,
+  obtenerTotales 
+} from './informes.js';
 
-import { 
-  DESCRIPCIONES
-} from './calculosPergola.js';
-
-import { 
-  elegirAcabado,
-  elegirReferenciaAcabado,
-  leerConfigColores,
-  leerReferenciasAcabado,
+import {
+  generarFechaFormateada,
+  generarCodigoRef,
   precioFormatearEuro
 } from './utils.js';
 
-import {
-  generarPiezasPerfiles,
-  optimizarBarras,
-  calcularPrecios
-} from './precios.js';
+// Variables globales
+let logoBase64 = null;
+let modalAbierto = false;
+let tipoDocumentoActual = 'material';
+
+const CONFIG_PDF = {
+  LOGO_PATH: './js/logo.png',
+  LOGO_ANCHO_MM: 30
+};
 
 // ============================================================================
-// VARIABLE GLOBAL PARA ALMACENAR EL ÚLTIMO INFORME
+// INICIALIZACIÓN
 // ============================================================================
 
-let ultimoInforme = null;
-
-// ============================================================================
-// FUNCIÓN PRINCIPAL DE CÁLCULO DE INFORMES
-// ============================================================================
-
-/**
- * Calcula todos los datos necesarios para los 3 informes
- * @param {object} materiales - Materiales necesarios
- * @param {object} ctx - Contexto con dimensiones
- * @returns {object} Objeto con todos los datos de los informes
- */
-export function calcularInformesEconomicos(materiales, ctx) {
-  if (!materiales || !Object.keys(materiales).length || !ctx) {
-    ultimoInforme = null;
-    return null;
-  }
-
-  const config = leerConfigColores();
-  const refs = leerReferenciasAcabado();
+export async function inicializarSistemaPDF() {
+  await cargarLogo();
   
-  // Calcular precios completos (SIN aplicar descuentos)
-  const configSinDescuento = { ...config, descuento: 0 };
-  const precios = calcularPrecios(materiales, ctx, configSinDescuento);
-  
-  if (!precios) {
-    ultimoInforme = null;
-    return null;
-  }
+  const btnVistaPrevia = document.getElementById('btnVistaPreviaPDF');
+  const btnWhatsApp = document.getElementById('btnCompartirWhatsApp');
+  const btnCerrarModal = document.getElementById('btnCerrarModal');
+  const btnCerrarModalFooter = document.getElementById('btnCerrarModalFooter');
+  const btnDescargarDesdeModal = document.getElementById('btnDescargarDesdeModal');
 
-  // Generar piezas por perfil para optimización
-  const piezasPerfiles = generarPiezasPerfiles(materiales, ctx);
+  if (btnVistaPrevia) btnVistaPrevia.addEventListener('click', abrirVistaPreviaPDF);
+  if (btnWhatsApp) btnWhatsApp.addEventListener('click', compartirWhatsApp);
+  if (btnCerrarModal) btnCerrarModal.addEventListener('click', cerrarModal);
+  if (btnCerrarModalFooter) btnCerrarModalFooter.addEventListener('click', cerrarModal);
+  if (btnDescargarDesdeModal) btnDescargarDesdeModal.addEventListener('click', descargarPDFDesdeModal);
 
-  // Preparar datos para informe de material
-  const detalleMaterial = prepararDetalleMaterial(
-    materiales, 
-    piezasPerfiles, 
-    precios, 
-    config, 
-    refs
-  );
+  const overlay = document.querySelector('.pdf-modal-overlay');
+  if (overlay) overlay.addEventListener('click', cerrarModal);
 
-  // Preparar datos para peso y perímetro
-  const detallePesoPerimetro = prepararDetallePesoPerimetro(
-    piezasPerfiles,
-    config
-  );
-
-  // Preparar datos para hoja de corte
-  const detalleHojaCorte = prepararDetalleHojaCorte(
-    piezasPerfiles,
-    config
-  );
-
-  // Calcular totales
-  const totales = calcularTotales(detalleMaterial, detallePesoPerimetro);
-
-  ultimoInforme = {
-    detalleMaterial,
-    detallePesoPerimetro,
-    detalleHojaCorte,
-    totales,
-    timestamp: new Date()
-  };
-
-  return ultimoInforme;
+  console.log('✅ Sistema PDF híbrido inicializado');
 }
 
-// ============================================================================
-// FUNCIONES DE PREPARACIÓN DE DATOS
-// ============================================================================
-
-/**
- * Prepara el detalle para el informe de material
- */
-function prepararDetalleMaterial(materiales, piezasPerfiles, precios, config, refs) {
-  const detalle = [];
-
-  Object.entries(materiales).forEach(([ref, cantidad]) => {
-    if (cantidad <= 0) return;
-
-    const tipo = TIPO_MATERIAL[ref] || "accesorio";
-    const esPerfil = tipo === "perfil";
-
-    if (esPerfil) {
-      // Es un perfil de aluminio
-      const perfil = precio_perfiles[ref] || {
-        nombre: DESCRIPCIONES[ref] || ref,
-        grupo_color: "perimetro",
-        precio_m: {},
-        longitudes_barra: []
-      };
-
-      const acabado = elegirAcabado(perfil.grupo_color, config);
-      const refAcabado = elegirReferenciaAcabado(perfil.grupo_color, refs);
-      const precioM = perfil.precio_m?.[acabado] || 0;
-
-      // Optimizar barras
-      const piezas = piezasPerfiles[ref] || [];
-      const opt = optimizarBarras(ref, piezas);
-
-      // Calcular barras totales y precio
-      let totalBarras = 0;
-      let longitudesBarraStr = "";
-      let importe = 0;
-
-      if (Object.keys(opt.barrasPorLongitud).length > 0) {
-        const longitudesInfo = [];
-        Object.entries(opt.barrasPorLongitud).forEach(([longMm, cant]) => {
-          totalBarras += cant;
-          const longM = Number(longMm) / 1000;
-          // Sin "m", con coma decimal
-          longitudesInfo.push(`${longM.toFixed(1).replace('.', ',')} (${cant})`);
-          importe += longM * cant * precioM;
-        });
-        longitudesBarraStr = longitudesInfo.join(", ");
-      } else {
-        longitudesBarraStr = "—";
-      }
-
-      detalle.push({
-        tipo: "Perfil",
-        ref,
-        descripcion: perfil.nombre,
-        acabado: acabado.charAt(0).toUpperCase() + acabado.slice(1),
-        refAcabado,
-        longitudBarra: longitudesBarraStr,
-        numBarras: totalBarras > 0 ? totalBarras : "—",
-        precioUnitario: precioM > 0 ? precioM.toFixed(2).replace('.', ',') : "—",
-        importe
-      });
-
-    } else {
-      // Es un accesorio
-      const accesorio = precio_accesorios[ref] || {
-        nombre: DESCRIPCIONES[ref] || ref,
-        grupo_color: "neutro",
-        precios: { sa: 0 }
-      };
-
-      const acabado = elegirAcabado(accesorio.grupo_color, config);
-      const refAcabado = elegirReferenciaAcabado(accesorio.grupo_color, refs);
-      const precioUnit = accesorio.precios?.[acabado] ?? accesorio.precios?.sa ?? 0;
-      const importe = precioUnit * cantidad;
-
-      detalle.push({
-        tipo: "Accesorio",
-        ref,
-        descripcion: accesorio.nombre,
-        acabado: acabado === "sa" ? "S/A" : acabado.charAt(0).toUpperCase() + acabado.slice(1),
-        refAcabado,
-        longitudBarra: "—",
-        numBarras: cantidad,
-        precioUnitario: precioUnit > 0 ? precioUnit.toFixed(2).replace('.', ',') : "—",
-        importe
-      });
+async function cargarLogo() {
+  try {
+    const response = await fetch(CONFIG_PDF.LOGO_PATH);
+    if (!response.ok) {
+      console.warn('⚠️ Logo no encontrado');
+      return;
     }
-  });
-
-  return detalle;
-}
-
-/**
- * Prepara el detalle para el informe de peso y perímetro
- */
-function prepararDetallePesoPerimetro(piezasPerfiles, config) {
-  const detalle = [];
-
-  Object.entries(piezasPerfiles).forEach(([ref, piezas]) => {
-    const perfil = precio_perfiles[ref];
-    if (!perfil) return;
-
-    const acabado = elegirAcabado(perfil.grupo_color, config);
     
-    // Calcular longitud total en metros
-    const longitudTotalM = piezas.reduce((sum, piezaMm) => sum + piezaMm, 0) / 1000;
-
-    // Calcular peso y perímetro totales
-    const pesoTotal = longitudTotalM * (perfil.peso_kg_m || 0);
-    const perimetroTotal = longitudTotalM * (perfil.perimetro_total_mm || 0);
-
-    detalle.push({
-      ref,
-      descripcion: perfil.nombre,
-      acabado: acabado.charAt(0).toUpperCase() + acabado.slice(1),
-      pesoTotal,
-      perimetroTotal
+    const blob = await response.blob();
+    logoBase64 = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
     });
-  });
-
-  return detalle;
-}
-
-/**
- * Prepara el detalle para la hoja de corte
- */
-function prepararDetalleHojaCorte(piezasPerfiles, config) {
-  const detalle = [];
-
-  Object.entries(piezasPerfiles).forEach(([ref, piezas]) => {
-    const perfil = precio_perfiles[ref];
-    if (!perfil || !piezas || piezas.length === 0) return;
-
-    const acabado = elegirAcabado(perfil.grupo_color, config);
     
-    // Optimizar barras
-    const opt = optimizarBarras(ref, piezas);
-
-    // Obtener detalles de cada barra
-    const barrasDetalle = generarDetalleBarras(ref, piezas, perfil.longitudes_barra || []);
-
-    detalle.push({
-      ref,
-      descripcion: perfil.nombre,
-      acabado: acabado.charAt(0).toUpperCase() + acabado.slice(1),
-      barrasPorLongitud: opt.barrasPorLongitud,
-      desperdicioTotal: opt.desperdicioTotal,
-      barrasDetalle
-    });
-  });
-
-  return detalle;
-}
-
-/**
- * Genera el detalle de corte por cada barra larga
- */
-function generarDetalleBarras(ref, piezasMm, longitudesBarraM) {
-  if (!piezasMm || piezasMm.length === 0) {
-    return [];
+    console.log('✅ Logo cargado');
+  } catch (error) {
+    console.error('❌ Error al cargar logo:', error);
   }
-
-  const longitudesBarraMm = longitudesBarraM
-    .map(l => Math.round(l * 1000))
-    .sort((a, b) => a - b);
-
-  // Construir solución greedy
-  const piezasOrdenadas = [...piezasMm].sort((a, b) => b - a);
-  const barras = [];
-
-  const crearBarra = longitudTotalMm => {
-    const capacidadInicial = longitudTotalMm - 2 * MARGEN_PUNTA_MM - MERMA_CORTE_MM;
-    return {
-      longitud: longitudTotalMm,
-      capacidadRestante: capacidadInicial,
-      piezas: [],
-      desperdicio: 0
-    };
-  };
-
-  const seleccionarBarraNueva = pieza => {
-    const longitudMinimaNecesaria = pieza + (1 + 1) * MERMA_CORTE_MM + 2 * MARGEN_PUNTA_MM;
-    const candidata = longitudesBarraMm.find(l => l >= longitudMinimaNecesaria);
-    return candidata !== undefined ? candidata : longitudesBarraMm[longitudesBarraMm.length - 1];
-  };
-
-  piezasOrdenadas.forEach(pieza => {
-    const consumo = pieza + MERMA_CORTE_MM;
-    let mejorIndice = -1;
-    let mejorResto = Infinity;
-
-    barras.forEach((barra, idx) => {
-      if (consumo <= barra.capacidadRestante) {
-        const resto = barra.capacidadRestante - consumo;
-        if (resto < mejorResto) {
-          mejorResto = resto;
-          mejorIndice = idx;
-        }
-      }
-    });
-
-    if (mejorIndice >= 0) {
-      barras[mejorIndice].capacidadRestante -= consumo;
-      barras[mejorIndice].piezas.push(pieza);
-    } else {
-      const seleccion = seleccionarBarraNueva(pieza);
-      const nuevaBarra = crearBarra(seleccion);
-      nuevaBarra.capacidadRestante = Math.max(0, nuevaBarra.capacidadRestante - consumo);
-      nuevaBarra.piezas.push(pieza);
-      barras.push(nuevaBarra);
-    }
-  });
-
-  // Calcular desperdicio por barra
-  barras.forEach(barra => {
-    const sumaPiezas = barra.piezas.reduce((sum, p) => sum + p, 0);
-    const mermaTotal = barra.piezas.length * MERMA_CORTE_MM;
-    const margenTotal = 2 * MARGEN_PUNTA_MM;
-    barra.desperdicio = barra.longitud - sumaPiezas - mermaTotal - margenTotal;
-  });
-
-  return barras;
-}
-
-/**
- * Calcula los totales generales
- */
-function calcularTotales(detalleMaterial, detallePesoPerimetro) {
-  let subtotalAluminio = 0;
-  let subtotalAccesorios = 0;
-  let pesoTotal = 0;
-  let perimetroTotal = 0;
-
-  // Sumar importes de material
-  detalleMaterial.forEach(item => {
-    if (item.tipo === "Perfil") {
-      subtotalAluminio += item.importe;
-    } else {
-      subtotalAccesorios += item.importe;
-    }
-  });
-
-  // Sumar peso y perímetro
-  detallePesoPerimetro.forEach(item => {
-    pesoTotal += item.pesoTotal;
-    perimetroTotal += item.perimetroTotal;
-  });
-
-  return {
-    subtotalAluminio,
-    subtotalAccesorios,
-    totalGeneral: subtotalAluminio + subtotalAccesorios,
-    pesoTotal,
-    perimetroTotal
-  };
 }
 
 // ============================================================================
-// FUNCIONES DE RENDERIZADO
+// FUNCIONES DEL MODAL (SIN CAMBIOS - VISTA PREVIA HTML)
 // ============================================================================
 
-/**
- * Función principal de renderizado de informes
- * @param {object} informes - Datos de los informes calculados
- */
-export function renderInformesEconomicos(informes) {
-  if (!informes) {
-    limpiarInformesEconomicos();
+export function abrirVistaPreviaPDF() {
+  console.log('👁️ Abriendo vista previa...');
+
+  // Validar datos obligatorios antes de abrir
+  const comercial = document.getElementById('inputComercial')?.value?.trim() || '';
+  const cliente = document.getElementById('inputCliente')?.value?.trim() || '';
+  const refObra = document.getElementById('inputRefObra')?.value?.trim() || '';
+
+  if (!comercial) {
+    alert('⚠️ ATENCIÓN: Debes rellenar el campo "Comercial" antes de generar la vista previa.');
     return;
   }
 
-  renderInformeMaterial(informes);
-  renderInformePesoPerimetro(informes);
-  renderInformeHojaCorte(informes);
+  if (!cliente) {
+    alert('⚠️ ATENCIÓN: Debes rellenar el campo "Cliente" antes de generar la vista previa.');
+    return;
+  }
+
+  if (!refObra) {
+    alert('⚠️ ATENCIÓN: Debes rellenar el campo "Ref. obra" antes de generar la vista previa.');
+    return;
+  }
+
+  const tipo = obtenerTipoDocumento();
+  tipoDocumentoActual = tipo;
+
+  const htmlPaginado = generarDocumentoPaginado(tipo);
+  if (!htmlPaginado) {
+    alert('No hay datos calculados. Por favor, calcula primero la configuración.');
+    return;
+  }
+
+  const modalContent = document.getElementById('pdfPreviewContent');
+  if (!modalContent) {
+    console.error('❌ No se encuentra el contenedor del modal');
+    return;
+  }
+
+  modalContent.innerHTML = htmlPaginado;
+
+  const modal = document.getElementById('pdfPreviewModal');
+  if (modal) {
+    modal.style.display = 'block';
+    modalAbierto = true;
+    console.log('✅ Modal abierto con vista previa HTML');
+  }
 }
 
-/**
- * Renderiza el informe de material
- */
-function renderInformeMaterial(informes) {
-  const tbody = document.getElementById('doc-material-body');
-  const totalesDiv = document.getElementById('doc-material-totales');
+export function cerrarModal() {
+  const modal = document.getElementById('pdfPreviewModal');
+  if (modal) {
+    modal.style.display = 'none';
+    modalAbierto = false;
+  }
+}
 
-  if (!tbody || !totalesDiv) return;
+// ============================================================================
+// DESCARGA PDF CON jsPDF (NUEVA IMPLEMENTACIÓN)
+// ============================================================================
 
-  tbody.innerHTML = '';
+export async function descargarPDFDesdeModal() {
+  console.log('📥 Generando PDF con jsPDF...');
 
-  informes.detalleMaterial.forEach(item => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${item.tipo}</td>
-      <td style="font-family: monospace;">${item.ref}</td>
-      <td>${item.descripcion}</td>
-      <td>${item.acabado}</td>
-      <td style="font-family: monospace;">${item.refAcabado}</td>
-      <td>${item.longitudBarra}</td>
-      <td style="text-align: center;">${item.numBarras}</td>
-      <td style="text-align: right;">${item.precioUnitario}</td>
-      <td style="text-align: right; font-weight: 600;">${precioFormatearEuro(item.importe)}</td>
-    `;
-    tbody.appendChild(tr);
+  if (typeof window.jspdf === 'undefined') {
+    alert('Error: Librería jsPDF no encontrada.');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+
+  const modalContent = document.getElementById('pdfPreviewContent');
+  if (!modalContent) {
+    alert('Error: No se encuentra el contenido.');
+    return;
+  }
+
+  try {
+    // Extraer datos del HTML
+    const datos = extraerDatosDelModal(modalContent);
+    
+    // VALIDACIÓN: Verificar que comercial, cliente y ref obra están rellenos
+    if (!datos.comercial || datos.comercial === '—' || !datos.comercial.trim()) {
+      alert('⚠️ ATENCIÓN: Debes rellenar el campo "Comercial" antes de generar el documento.');
+      return;
+    }
+    
+    if (!datos.cliente || datos.cliente === '—' || !datos.cliente.trim()) {
+      alert('⚠️ ATENCIÓN: Debes rellenar el campo "Cliente" antes de generar el documento.');
+      return;
+    }
+    
+    if (!datos.refObra || datos.refObra === '—' || !datos.refObra.trim()) {
+      alert('⚠️ ATENCIÓN: Debes rellenar el campo "Ref. obra" antes de generar el documento.');
+      return;
+    }
+    
+    const materiales = extraerMaterialesDelModal(modalContent);
+    const totales = extraerTotalesDelModal(modalContent);
+    
+    // Convertir SVG a imagen
+    const svgImagen = await convertirSVGaImagen(modalContent);
+
+    // Generar PDF
+    await generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen);
+
+    // Descargar
+    const nombreArchivo = generarNombreArchivo(tipoDocumentoActual);
+    doc.save(nombreArchivo);
+    
+    console.log('✅ PDF generado correctamente');
+  } catch (error) {
+    console.error('❌ Error al generar PDF:', error);
+    alert('Error al generar el PDF. Ver consola para detalles.');
+  }
+}
+
+async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
+  let y = 15;
+  const marginX = 20;
+  const pageWidth = 210;
+  const contentWidth = pageWidth - (marginX * 2);
+
+  // ========== CABECERA ==========
+  
+  // Logo
+  if (logoBase64) {
+    try {
+      doc.addImage(logoBase64, 'PNG', marginX, y, 30, 15);
+    } catch (e) {
+      console.warn('⚠️ Error al añadir logo:', e);
+    }
+  }
+
+  // Título (minimalista - solo "Presupuesto Pérgola Bioclimática · Doha Sun")
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(107, 114, 128); // Gris
+  doc.text('Presupuesto Pérgola Bioclimática · Doha Sun', 55, y + 10);
+
+  // Fecha
+  doc.setTextColor(31, 41, 55);
+  doc.text(datos.fecha || '', pageWidth - marginX, y + 8, { align: 'right' });
+
+  y += 20;
+
+  // Línea divisoria
+  doc.setDrawColor(209, 213, 219);
+  doc.line(marginX, y, pageWidth - marginX, y);
+  y += 8;
+
+  // ========== RESUMEN DE CONFIGURACIÓN ==========
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(31, 41, 55);
+  doc.text('Resumen de configuración', marginX, y);
+
+  y += 7;
+
+  // Ref. presupuesto
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(107, 114, 128);
+  doc.text(`Ref. presupuesto: ${datos.codigoPresupuesto}`, marginX, y);
+  y += 8;
+
+  // Datos comerciales
+  doc.setTextColor(55, 65, 81);
+  const datosComerciales = `Comercial: ${datos.comercial}    Cliente: ${datos.cliente}    Ref. obra: ${datos.refObra}`;
+  doc.text(datosComerciales, marginX, y);
+  y += 8;
+
+  // Recuadro azul con datos principales
+  const recuadroHeight = 45;
+  doc.setFillColor(239, 246, 255); // Azul muy claro
+  doc.setDrawColor(191, 219, 254); // Borde azul
+  doc.roundedRect(marginX, y, contentWidth, recuadroHeight, 2, 2, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(30, 64, 175);
+  doc.text('Datos principales', marginX + 4, y + 6);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(55, 65, 81);
+  
+  let yDatos = y + 12;
+  const datosTexto = [
+    `• Largo/salida: ${datos.salida} m · Ancho: ${datos.ancho} m · Altura libre: ${datos.altura} m`,
+    `• Módulos: ${datos.modulos}`,
+    `• Tipo de montaje: ${datos.tipoMontaje}`,
+    `• Nº pilares calculados: ${datos.numPilares}`,
+    `• Motores: ${datos.motores}`,
+    `• Número de lamas (tabla): ${datos.numLamas}`,
+    `• Mando: ${datos.mando}`
+  ];
+
+  datosTexto.forEach(texto => {
+    doc.text(texto, marginX + 6, yDatos);
+    yDatos += 5;
   });
 
-  // Renderizar totales
-  totalesDiv.innerHTML = `
-    <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; max-width: 500px; margin-left: auto;">
-      <div style="text-align: right; font-weight: 500;">Subtotal Aluminio:</div>
-      <div style="text-align: right; font-weight: 600; color: var(--blue-main);">${precioFormatearEuro(informes.totales.subtotalAluminio)}</div>
+  y += recuadroHeight + 8;
+
+  // ========== SVG ESQUEMA ==========
+  
+  if (svgImagen) {
+    try {
+      // Calcular dimensiones manteniendo aspect ratio
+      const maxWidth = contentWidth;
+      const maxHeight = 60;
       
-      <div style="text-align: right; font-weight: 500;">Subtotal Accesorios:</div>
-      <div style="text-align: right; font-weight: 600; color: var(--blue-main);">${precioFormatearEuro(informes.totales.subtotalAccesorios)}</div>
+      const img = new Image();
+      img.src = svgImagen;
       
-      <div style="text-align: right; font-weight: 700; font-size: 1.1rem; border-top: 2px solid var(--border); padding-top: 0.5rem; margin-top: 0.5rem;">TOTAL GENERAL:</div>
-      <div style="text-align: right; font-weight: 700; font-size: 1.1rem; color: var(--blue-dark); border-top: 2px solid var(--border); padding-top: 0.5rem; margin-top: 0.5rem;">${precioFormatearEuro(informes.totales.totalGeneral)}</div>
+      await new Promise((resolve) => {
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          const ratio = width / height;
+          
+          if (width > maxWidth) {
+            width = maxWidth;
+            height = width / ratio;
+          }
+          
+          if (height > maxHeight) {
+            height = maxHeight;
+            width = height * ratio;
+          }
+          
+          const xCentrado = marginX + (contentWidth - width) / 2;
+          doc.addImage(svgImagen, 'PNG', xCentrado, y, width, height);
+          resolve();
+        };
+        img.onerror = resolve;
+      });
+      
+      y += 65;
+    } catch (e) {
+      console.warn('⚠️ Error al añadir SVG:', e);
+      y += 5;
+    }
+  }
+
+  // ========== TABLA DE MATERIALES ==========
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(31, 41, 55);
+  doc.text('Informe de material', marginX, y);
+  y += 6;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(107, 114, 128);
+  doc.text('• Acabado general: blanco', marginX, y);
+  y += 2;
+
+  // Tabla con autotable - headers con unidades
+  doc.autoTable({
+    startY: y,
+    head: [[
+      'TIPO',
+      'REF.',
+      'DESCRIPCIÓN',
+      'ACABADO',
+      'REF. ACABADO',
+      'LONG. BARRA (m)',
+      'Nº BARRAS / UDS',
+      'PRECIO UNIT. (€)',
+      'IMPORTE (€)'
+    ]],
+    body: materiales.map(m => {
+      // Extraer solo los números, sin unidades
+      const longBarra = m.longitudBarra.replace(/[^\d.,]/g, '').replace('.', ',');
+      const numBarras = m.numBarras.replace(/[^\d]/g, '');
+      const precioUnit = m.precioUnit.replace(/[^\d.,]/g, '').replace('.', ',');
+      const importe = m.importe.replace(/[^\d.,]/g, '').replace('.', ',');
+      
+      return [
+        m.tipo,
+        m.ref,
+        m.descripcion,
+        m.acabado,
+        'SIN ESPECIFICAR',
+        longBarra,
+        numBarras,
+        precioUnit,
+        importe
+      ];
+    }),
+    styles: {
+      fontSize: 8,
+      cellPadding: 1.5,
+      lineColor: [229, 231, 235],
+      lineWidth: 0.1
+    },
+    headStyles: {
+      fillColor: [243, 244, 246],
+      textColor: [31, 41, 55],
+      fontStyle: 'bold',
+      lineColor: [209, 213, 219],
+      lineWidth: 0.1
+    },
+    alternateRowStyles: {
+      fillColor: [250, 250, 250]
+    },
+    margin: { left: marginX, right: marginX },
+    tableWidth: contentWidth,
+    columnStyles: {
+      5: { halign: 'right' }, // Long. barra
+      6: { halign: 'right' }, // Nº barras
+      7: { halign: 'right' }, // Precio unit.
+      8: { halign: 'right' }  // Importe
+    }
+  });
+
+  y = doc.lastAutoTable.finalY + 8;
+
+  // ========== TOTALES ==========
+  
+  // Verificar si hay espacio, si no añadir página
+  if (y > 250) {
+    doc.addPage();
+    y = 20;
+  }
+
+  const totalesWidth = 80;
+  const totalesX = pageWidth - marginX - totalesWidth;
+
+  doc.setFillColor(249, 250, 251);
+  doc.setDrawColor(229, 231, 235);
+  doc.roundedRect(totalesX, y, totalesWidth, 30, 3, 3, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(31, 41, 55);
+  doc.text('Resumen económico', totalesX + 4, y + 6);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(107, 114, 128);
+
+  let yTotal = y + 12;
+  doc.text('Total perfiles', totalesX + 4, yTotal);
+  doc.setTextColor(31, 41, 55);
+  doc.setFont('helvetica', 'bold');
+  doc.text(totales.perfiles, totalesX + totalesWidth - 4, yTotal, { align: 'right' });
+
+  yTotal += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(107, 114, 128);
+  doc.text('Total accesorios', totalesX + 4, yTotal);
+  doc.setTextColor(31, 41, 55);
+  doc.setFont('helvetica', 'bold');
+  doc.text(totales.accesorios, totalesX + totalesWidth - 4, yTotal, { align: 'right' });
+
+  yTotal += 7;
+  doc.setDrawColor(3, 105, 161);
+  doc.line(totalesX + 4, yTotal - 2, totalesX + totalesWidth - 4, yTotal - 2);
+  doc.line(totalesX + 4, yTotal + 4, totalesX + totalesWidth - 4, yTotal + 4);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(3, 105, 161);
+  doc.text('Total materiales', totalesX + 4, yTotal + 2);
+  doc.text(totales.total, totalesX + totalesWidth - 4, yTotal + 2, { align: 'right' });
+
+  // ========== PIE DE PÁGINA ==========
+  
+  const numPaginas = doc.internal.pages.length - 1;
+  for (let i = 1; i <= numPaginas; i++) {
+    doc.setPage(i);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(107, 114, 128);
+    
+    doc.text(`Página ${i}`, marginX, 287);
+    doc.setFont('helvetica', 'italic');
+    doc.text('ALUMINIOS GALISUR · Pérgola Bioclimática Doha Sun', pageWidth - marginX, 287, { align: 'right' });
+  }
+}
+
+// ============================================================================
+// CONVERSIÓN SVG A IMAGEN
+// ============================================================================
+
+// Función auxiliar para formatear números con coma
+function formatearNumeroConComa(numero) {
+  if (typeof numero === 'string') {
+    // Si ya es string, reemplazar punto por coma
+    return numero.replace('.', ',');
+  }
+  if (typeof numero === 'number') {
+    return numero.toFixed(2).replace('.', ',');
+  }
+  return numero;
+}
+
+async function convertirSVGaImagen(modalContent) {
+  const svg = modalContent.querySelector('svg');
+  if (!svg) {
+    console.warn('⚠️ No se encontró SVG');
+    return null;
+  }
+
+  try {
+    // Crear canvas
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Obtener dimensiones del SVG
+    const svgRect = svg.getBoundingClientRect();
+    const scale = 2; // Para mejor calidad
+    canvas.width = svgRect.width * scale;
+    canvas.height = svgRect.height * scale;
+
+    // Serializar SVG
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    // Cargar en imagen
+    const img = new Image();
+    const imagenBase64 = await new Promise((resolve, reject) => {
+      img.onload = () => {
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Error al cargar SVG'));
+      };
+      img.src = url;
+    });
+
+    console.log('✅ SVG convertido a imagen');
+    return imagenBase64;
+  } catch (error) {
+    console.error('❌ Error al convertir SVG:', error);
+    return null;
+  }
+}
+
+// ============================================================================
+// EXTRACCIÓN DE DATOS DEL HTML
+// ============================================================================
+
+function extraerDatosDelModal(modalContent) {
+  const datos = {
+    fecha: modalContent.querySelector('.pdf-header-ref-right')?.textContent?.trim() || '',
+    codigoPresupuesto: '',
+    comercial: '—',
+    cliente: '—',
+    refObra: '—',
+    salida: '',
+    ancho: '',
+    altura: '',
+    modulos: '',
+    tipoMontaje: '',
+    numPilares: '',
+    motores: '',
+    numLamas: '',
+    mando: ''
+  };
+
+  // Ref presupuesto
+  const refElement = modalContent.querySelector('.pdf-ref-presupuesto');
+  if (refElement) {
+    const texto = refElement.textContent;
+    datos.codigoPresupuesto = texto.replace('Ref. presupuesto:', '').trim();
+  }
+
+  // Datos comerciales
+  const datosComerciales = modalContent.querySelectorAll('.pdf-datos-comerciales-ref div');
+  if (datosComerciales.length >= 3) {
+    datos.comercial = datosComerciales[0].textContent.replace('Comercial:', '').trim();
+    datos.cliente = datosComerciales[1].textContent.replace('Cliente:', '').trim();
+    datos.refObra = datosComerciales[2].textContent.replace('Ref. obra:', '').trim();
+  }
+
+  // Datos principales (dentro del recuadro azul)
+  const listaDatos = modalContent.querySelectorAll('.pdf-lista-datos li');
+  listaDatos.forEach(li => {
+    const texto = li.textContent;
+    
+    if (texto.includes('Largo/salida:')) {
+      const match = texto.match(/Largo\/salida:\s*([\d.]+)\s*m.*Ancho:\s*([\d.]+)\s*m.*Altura libre:\s*([\d.]+)\s*m/);
+      if (match) {
+        datos.salida = match[1];
+        datos.ancho = match[2];
+        datos.altura = match[3];
+      }
+    } else if (texto.includes('Módulos:')) {
+      datos.modulos = texto.replace('Módulos:', '').trim();
+    } else if (texto.includes('Tipo de montaje:')) {
+      datos.tipoMontaje = texto.replace('Tipo de montaje:', '').trim();
+    } else if (texto.includes('Nº pilares calculados:')) {
+      datos.numPilares = texto.replace('Nº pilares calculados:', '').trim();
+    } else if (texto.includes('Motores:')) {
+      datos.motores = texto.replace('Motores:', '').trim();
+    } else if (texto.includes('Número de lamas')) {
+      datos.numLamas = texto.replace('Número de lamas (tabla):', '').trim();
+    } else if (texto.includes('Mando:')) {
+      datos.mando = texto.replace('Mando:', '').trim();
+    }
+  });
+
+  return datos;
+}
+
+function extraerMaterialesDelModal(modalContent) {
+  const materiales = [];
+  const filas = modalContent.querySelectorAll('.pdf-tabla-materiales tbody tr');
+
+  filas.forEach(tr => {
+    const celdas = tr.querySelectorAll('td');
+    if (celdas.length >= 9) {
+      materiales.push({
+        tipo: celdas[0].textContent.trim(),
+        ref: celdas[1].textContent.trim(),
+        descripcion: celdas[2].textContent.trim(),
+        acabado: celdas[3].textContent.trim(),
+        refAcabado: celdas[4].textContent.trim(),
+        longitudBarra: celdas[5].textContent.trim(),
+        numBarras: celdas[6].textContent.trim(),
+        precioUnit: celdas[7].textContent.trim(),
+        importe: celdas[8].textContent.trim()
+      });
+    }
+  });
+
+  return materiales;
+}
+
+function extraerTotalesDelModal(modalContent) {
+  const totales = {
+    perfiles: '0,00 €',
+    accesorios: '0,00 €',
+    total: '0,00 €'
+  };
+
+  const filasTotales = modalContent.querySelectorAll('.pdf-total-fila');
+  
+  filasTotales.forEach(fila => {
+    const texto = fila.textContent;
+    const spans = fila.querySelectorAll('span');
+    
+    if (spans.length === 2) {
+      const valor = spans[1].textContent.trim();
+      
+      if (texto.includes('Total perfiles')) {
+        totales.perfiles = valor;
+      } else if (texto.includes('Total accesorios')) {
+        totales.accesorios = valor;
+      } else if (texto.includes('Total materiales')) {
+        totales.total = valor;
+      }
+    }
+  });
+
+  return totales;
+}
+
+// ============================================================================
+// FUNCIONES DE GENERACIÓN HTML (SIN CAMBIOS - PARA VISTA PREVIA)
+// ============================================================================
+
+function generarDocumentoPaginado(tipo) {
+  console.log('📄 Generando documento HTML:', tipo);
+
+  const informe = obtenerUltimoInforme();
+  if (!informe) {
+    console.error('❌ No hay informe disponible');
+    return null;
+  }
+
+  const totales = obtenerTotales();
+  const datos = leerDatosContexto();
+
+  if (tipo === 'material') {
+    return generarPresupuestoPaginado(informe, totales, datos);
+  } else if (tipo === 'corte') {
+    return generarHojaCortePaginada(informe, datos);
+  } else {
+    return generarPesoPerimetrosPaginado(informe, totales, datos);
+  }
+}
+
+function generarPresupuestoPaginado(informe, totales, datos) {
+  if (!informe || !informe.detalleMaterial || informe.detalleMaterial.length === 0) {
+    console.error('❌ No hay materiales en el informe');
+    return null;
+  }
+
+  const materiales = informe.detalleMaterial;
+  console.log('📊 Generando presupuesto HTML con', materiales.length, 'materiales');
+  
+  const htmlCompleto = `
+    <div class="pdf-page-a4">
+      ${generarCabecera(datos, 1, 'PRESUPUESTO PÉRGOLA BIOCLIMÁTICA · DOHA SUN')}
+      
+      <section class="pdf-content-a4">
+        ${generarBloqueDatosPresupuesto(datos)}
+        ${generarBloqueEsquema()}
+        
+        <div class="pdf-bloque-tabla">
+          <h2 class="pdf-titulo-tabla-ref">Informe de material</h2>
+          <div class="pdf-subtitulo-tabla-ref">• <strong>Acabado general:</strong> blanco</div>
+          
+          <table class="pdf-tabla-materiales">
+            <thead>
+              <tr>
+                <th style="width: 8%;">TIPO</th>
+                <th style="width: 8%;">REF.</th>
+                <th style="width: 24%;">DESCRIPCIÓN</th>
+                <th style="width: 12%;">ACABADO</th>
+                <th style="width: 8%;">REF. ACABADO</th>
+                <th style="width: 10%;">LONG. BARRA (m)</th>
+                <th style="width: 10%;">Nº BARRAS / UDS</th>
+                <th style="width: 10%;">PRECIO UNIT. (€)</th>
+                <th style="width: 10%;">IMPORTE (€)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${generarFilasTabla(materiales)}
+            </tbody>
+          </table>
+        </div>
+        
+        ${generarBloqueTotales(totales)}
+      </section>
+      
+      ${generarPie(1)}
+    </div>
+  `;
+
+  console.log('✅ HTML generado para vista previa');
+  return `<div class="pdf-documento-multipagina">${htmlCompleto}</div>`;
+}
+
+function generarCabecera(datos, numPagina, titulo) {
+  const logoHTML = logoBase64 
+    ? `<img src="${logoBase64}" class="pdf-logo-ref" alt="Logo Galisur" />`
+    : '<div class="pdf-logo-ref-placeholder"></div>';
+
+  const fechaFormateada = datos.fecha || '';
+
+  return `
+    <header class="pdf-header-ref">
+      <div class="pdf-header-ref-top">
+        <div class="pdf-header-ref-left">
+          ${logoHTML}
+        </div>
+        <div class="pdf-header-ref-centro">
+          <div class="pdf-subtitulo-ref">Presupuesto Pérgola Bioclimática · Doha Sun</div>
+        </div>
+        <div class="pdf-header-ref-right">
+          ${fechaFormateada}
+        </div>
+      </div>
+      <div class="pdf-divider-ref"></div>
+    </header>
+  `;
+}
+
+function generarBloqueDatosPresupuesto(datos) {
+  return `
+    <div class="pdf-resumen-config-ref">
+      <div class="pdf-resumen-header-ref">
+        <div>
+          <h2 class="pdf-titulo-seccion-ref">Resumen de configuración</h2>
+          <div class="pdf-ref-presupuesto">Ref. presupuesto: ${datos.codigoPresupuesto}</div>
+        </div>
+      </div>
+      
+      <div class="pdf-datos-comerciales-ref">
+        <div><strong>Comercial:</strong> ${datos.comercial || '—'}</div>
+        <div><strong>Cliente:</strong> ${datos.cliente || '—'}</div>
+        <div><strong>Ref. obra:</strong> ${datos.refObra || '—'}</div>
+      </div>
+      
+      <div class="pdf-recuadro-azul">
+        <h3 class="pdf-recuadro-titulo">Datos principales</h3>
+        <ul class="pdf-lista-datos">
+          <li><strong>Largo/salida:</strong> ${datos.salida.toFixed(2)} m · <strong>Ancho:</strong> ${datos.ancho.toFixed(2)} m · <strong>Altura libre:</strong> ${datos.altura.toFixed(2)} m</li>
+          <li><strong>Módulos:</strong> ${datos.modulos}</li>
+          <li><strong>Tipo de montaje:</strong> ${datos.tipoMontajeTexto}</li>
+          <li><strong>Nº pilares calculados:</strong> ${datos.numPilares}</li>
+          <li><strong>Motores:</strong> ${datos.modoMotorTexto}</li>
+          <li><strong>Número de lamas (tabla):</strong> ${datos.numLamas}</li>
+          <li><strong>Mando:</strong> ${datos.mandoTexto}</li>
+        </ul>
+      </div>
     </div>
   `;
 }
 
-/**
- * Renderiza el informe de peso y perímetro
- */
-function renderInformePesoPerimetro(informes) {
-  const tbody = document.getElementById('doc-peso-body');
+function generarBloqueEsquema() {
+  let svgElement = null;
   
-  if (!tbody) return;
-
-  tbody.innerHTML = '';
-
-  informes.detallePesoPerimetro.forEach(item => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td style="font-family: monospace;">${item.ref}</td>
-      <td>${item.descripcion}</td>
-      <td style="text-align: right; font-weight: 600;">${item.pesoTotal.toFixed(2)} kg</td>
-      <td style="text-align: right; font-weight: 600;">${item.perimetroTotal.toFixed(2)} mm</td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  // Agregar fila de totales
-  const trTotal = document.createElement('tr');
-  trTotal.style.borderTop = '2px solid var(--border)';
-  trTotal.style.fontWeight = '700';
-  trTotal.style.backgroundColor = 'var(--blue-soft)';
-  trTotal.innerHTML = `
-    <td colspan="2" style="text-align: right; padding-right: 1rem;">TOTALES:</td>
-    <td style="text-align: right; color: var(--blue-dark);">${informes.totales.pesoTotal.toFixed(2)} kg</td>
-    <td style="text-align: right; color: var(--blue-dark);">${informes.totales.perimetroTotal.toFixed(2)} mm</td>
-  `;
-  tbody.appendChild(trTotal);
-}
-
-/**
- * Renderiza la hoja de corte
- */
-function renderInformeHojaCorte(informes) {
-  const container = document.getElementById('doc-corte-body');
+  const svgContainer = document.getElementById('svg-container');
+  if (svgContainer && svgContainer.querySelector('svg')) {
+    svgElement = svgContainer.querySelector('svg');
+  }
   
-  if (!container) return;
-
-  container.innerHTML = '';
-
-  informes.detalleHojaCorte.forEach(perfil => {
-    // Crear sección por perfil
-    const section = document.createElement('div');
-    section.style.marginBottom = '2rem';
-    section.style.pageBreakInside = 'avoid';
-
-    // Encabezado del perfil
-    const header = document.createElement('div');
-    header.style.marginBottom = '1rem';
-    header.style.padding = '0.75rem';
-    header.style.backgroundColor = 'var(--blue-soft)';
-    header.style.borderRadius = '0.5rem';
-    header.innerHTML = `
-      <div style="font-weight: 700; font-size: 1.05rem; color: var(--blue-dark); margin-bottom: 0.25rem;">
-        ${perfil.ref} - ${perfil.descripcion}
-      </div>
-      <div style="font-size: 0.9rem; color: var(--text-soft);">
-        Acabado: ${perfil.acabado} | Desperdicio total: ${(perfil.desperdicioTotal / 1000).toFixed(3)} m
-      </div>
-    `;
-    section.appendChild(header);
-
-    // Tabla de barras
-    const table = document.createElement('table');
-    table.style.width = '100%';
-    table.style.fontSize = '0.9rem';
-    
-    const thead = document.createElement('thead');
-    thead.innerHTML = `
-      <tr>
-        <th style="width: 15%;">Barra (mm)</th>
-        <th style="width: 10%;">Cantidad</th>
-        <th style="width: 55%;">Piezas cortadas (mm)</th>
-        <th style="width: 20%;">Desperdicio (mm)</th>
-      </tr>
-    `;
-    table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-
-    // Agrupar barras por longitud
-    const barrasPorLongitud = {};
-    perfil.barrasDetalle.forEach(barra => {
-      if (!barrasPorLongitud[barra.longitud]) {
-        barrasPorLongitud[barra.longitud] = [];
+  if (!svgElement) {
+    const cards = document.querySelectorAll('.card');
+    for (const card of cards) {
+      const title = card.querySelector('.card-title');
+      if (title && title.textContent.includes('Vista esquemática')) {
+        svgElement = card.querySelector('svg');
+        if (svgElement) break;
       }
-      barrasPorLongitud[barra.longitud].push(barra);
-    });
+    }
+  }
+  
+  if (!svgElement) {
+    const svgs = document.querySelectorAll('svg');
+    for (const svg of svgs) {
+      const rect = svg.getBoundingClientRect();
+      if (rect.width > 400 && rect.height > 400) {
+        svgElement = svg;
+        break;
+      }
+    }
+  }
+  
+  let svgContent = '';
+  
+  if (svgElement) {
+    const svgClone = svgElement.cloneNode(true);
+    svgClone.setAttribute('width', '160mm');
+    svgClone.setAttribute('height', 'auto');
+    svgClone.style.display = 'block';
+    svgClone.style.maxWidth = '100%';
+    
+    svgContent = svgClone.outerHTML;
+    console.log('✅ SVG encontrado para vista previa');
+  } else {
+    svgContent = '<div class="pdf-esquema-placeholder">Esquema no disponible</div>';
+    console.warn('⚠️ SVG no encontrado');
+  }
 
-    // Renderizar cada grupo
-    Object.entries(barrasPorLongitud).forEach(([longitud, barras]) => {
-      const tr = document.createElement('tr');
-      
-      // Longitud de barra
-      const tdLong = document.createElement('td');
-      tdLong.style.fontWeight = '600';
-      tdLong.style.fontFamily = 'monospace';
-      tdLong.textContent = longitud;
-      tr.appendChild(tdLong);
-
-      // Cantidad
-      const tdCant = document.createElement('td');
-      tdCant.style.textAlign = 'center';
-      tdCant.style.fontWeight = '600';
-      tdCant.textContent = barras.length;
-      tr.appendChild(tdCant);
-
-      // Piezas (mostrar ejemplo de la primera barra)
-      const tdPiezas = document.createElement('td');
-      tdPiezas.style.fontFamily = 'monospace';
-      tdPiezas.style.fontSize = '0.85rem';
-      const piezasStr = barras[0].piezas.map(p => p.toFixed(0)).join(' + ');
-      tdPiezas.textContent = piezasStr;
-      tr.appendChild(tdPiezas);
-
-      // Desperdicio promedio
-      const tdDesp = document.createElement('td');
-      tdDesp.style.textAlign = 'right';
-      tdDesp.style.fontFamily = 'monospace';
-      const desperdicioPromedio = barras.reduce((sum, b) => sum + b.desperdicio, 0) / barras.length;
-      tdDesp.textContent = desperdicioPromedio.toFixed(1);
-      tr.appendChild(tdDesp);
-
-      tbody.appendChild(tr);
-    });
-
-    table.appendChild(tbody);
-    section.appendChild(table);
-    container.appendChild(section);
-  });
+  return `
+    <div class="pdf-bloque-esquema-ref">
+      <div class="pdf-esquema-contenedor-ref">
+        ${svgContent}
+      </div>
+    </div>
+  `;
 }
 
-/**
- * Limpia todos los contenedores de informes
- */
-export function limpiarInformesEconomicos() {
-  const docMaterialBody = document.getElementById('doc-material-body');
-  const docMaterialTotales = document.getElementById('doc-material-totales');
-  const docPesoBody = document.getElementById('doc-peso-body');
-  const docCorteBody = document.getElementById('doc-corte-body');
+function generarFilasTabla(filas) {
+  return filas.map(item => `
+    <tr>
+      <td>${item.tipo || 'Perfil'}</td>
+      <td>${item.ref || '—'}</td>
+      <td>${item.descripcion || '—'}</td>
+      <td>${item.acabado || 'Blanco'}</td>
+      <td>SIN ESPECIFICAR</td>
+      <td style="text-align: right;">${item.longitudBarra || '—'}</td>
+      <td style="text-align: right;">${item.numBarras || '—'}</td>
+      <td style="text-align: right;">${item.precioUnitario || '0,00 €'}</td>
+      <td style="text-align: right;">${item.importe !== undefined ? precioFormatearEuro(item.importe) : '0,00 €'}</td>
+    </tr>
+  `).join('');
+}
 
-  if (docMaterialBody) docMaterialBody.innerHTML = '';
-  if (docMaterialTotales) docMaterialTotales.innerHTML = '';
-  if (docPesoBody) docPesoBody.innerHTML = '';
-  if (docCorteBody) docCorteBody.innerHTML = '';
+function generarBloqueTotales(totales) {
+  if (!totales) return '';
 
-  ultimoInforme = null;
+  return `
+    <div class="pdf-bloque-totales">
+      <h3 class="pdf-totales-titulo">Resumen económico</h3>
+      <div class="pdf-total-fila">
+        <span>Total perfiles</span>
+        <span>${precioFormatearEuro(totales.subtotalAluminio || 0)}</span>
+      </div>
+      <div class="pdf-total-fila">
+        <span>Total accesorios</span>
+        <span>${precioFormatearEuro(totales.subtotalAccesorios || 0)}</span>
+      </div>
+      <div class="pdf-total-fila pdf-total-destacado">
+        <span>Total materiales</span>
+        <span>${precioFormatearEuro(totales.totalGeneral || 0)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function generarPie(numPagina) {
+  return `
+    <footer class="pdf-footer-a4">
+      <span class="pdf-footer-izq">Página ${numPagina}</span>
+      <span class="pdf-footer-der">ALUMINIOS GALISUR · Pérgola Bioclimática Doha Sun</span>
+    </footer>
+  `;
+}
+
+// Funciones simplificadas para otros documentos
+function generarHojaCortePaginada(informe, datos) {
+  return `<div class="pdf-documento-multipagina"><div class="pdf-page-a4"><p>Hoja de corte - En desarrollo</p></div></div>`;
+}
+
+function generarPesoPerimetrosPaginado(informe, totales, datos) {
+  return `<div class="pdf-documento-multipagina"><div class="pdf-page-a4"><p>Peso y perímetros - En desarrollo</p></div></div>`;
 }
 
 // ============================================================================
-// FUNCIONES AUXILIARES DE ACCESO A DATOS
+// UTILIDADES
 // ============================================================================
 
-/**
- * Obtiene el último informe calculado
- * @returns {object|null} Último informe
- */
-export function obtenerUltimoInforme() {
-  return ultimoInforme;
+function leerDatosContexto() {
+  const comercial = document.getElementById('inputComercial')?.value || '';
+  const cliente = document.getElementById('inputCliente')?.value || '';
+  const refObra = document.getElementById('inputRefObra')?.value || '';
+  
+  const ancho = parseFloat(document.getElementById('ancho')?.value) || 0;
+  const salida = parseFloat(document.getElementById('salida')?.value) || 0;
+  const altura = parseFloat(document.getElementById('altura')?.value) || 0;
+  
+  const variosModulos = document.getElementById('variosModulos')?.checked || false;
+  const modulos = variosModulos ? parseInt(document.getElementById('numModulos')?.value, 10) || 1 : 1;
+  
+  const tipoMontajeTexto = document.getElementById('tipoMontaje')?.selectedOptions[0]?.text || '';
+  const numPilaresText = document.getElementById('numPilaresCalc')?.textContent || '0';
+  const numPilares = parseInt(numPilaresText, 10) || 0;
+  
+  const modoMotor = document.querySelector('input[name="modoMotor"]:checked')?.value || 'todos-izquierda';
+  const modoMotorTexto = modoMotor === 'todos-izquierda' ? 'Todos a izquierda' 
+    : modoMotor === 'todos-derecha' ? 'Todos a derecha' : 'Personalizado';
+  
+  const numLamasText = document.getElementById('numLamasDisplay')?.textContent || '0';
+  const numLamas = parseInt(numLamasText, 10) || 0;
+  
+  const mando = document.getElementById('mando')?.value || 'con';
+  const mandoTexto = mando === 'con' ? 'Con mando (1 ud.)' : 'Sin mando';
+  
+  const codigoElement = document.getElementById('refCodeInline');
+  const codigoPresupuesto = codigoElement ? codigoElement.textContent : generarCodigoRef();
+  
+  const fecha = generarFechaFormateada();
+
+  return {
+    comercial, cliente, refObra,
+    ancho, salida, altura, modulos,
+    tipoMontajeTexto, numPilares,
+    modoMotorTexto, numLamas, mandoTexto,
+    codigoPresupuesto, fecha
+  };
 }
 
-/**
- * Obtiene el resumen de líneas del informe de material
- * @returns {Array} Array con el detalle de material
- */
-export function obtenerResumenLineas() {
-  return ultimoInforme ? ultimoInforme.detalleMaterial : [];
+function obtenerTipoDocumento() {
+  const selector = document.getElementById('selectorDocumento');
+  return selector ? selector.value : 'material';
 }
 
-/**
- * Obtiene los totales del informe
- * @returns {object|null} Objeto con totales
- */
-export function obtenerTotales() {
-  return ultimoInforme ? ultimoInforme.totales : null;
+function generarNombreArchivo(tipo) {
+  const codigoElement = document.getElementById('refCodeInline');
+  const codigo = codigoElement ? codigoElement.textContent : generarTimestamp();
+
+  let prefijo = 'PRESUPUESTO';
+  if (tipo === 'corte') prefijo = 'HOJA_CORTE';
+  if (tipo === 'peso') prefijo = 'PESO_PERIMETROS';
+
+  return `${prefijo}_${codigo}.pdf`;
 }
 
-/**
- * Obtiene el detalle de perfiles (peso y perímetro)
- * @returns {Array} Array con detalle de perfiles
- */
-export function obtenerDetallePerfiles() {
-  return ultimoInforme ? ultimoInforme.detallePesoPerimetro : [];
+function generarTimestamp() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
 }
 
-/**
- * Obtiene el detalle de accesorios
- * @returns {Array} Array con detalle de accesorios
- */
-export function obtenerDetalleAccesorios() {
-  if (!ultimoInforme) return [];
-  return ultimoInforme.detalleMaterial.filter(item => item.tipo === "Accesorio");
+export function compartirWhatsApp() {
+  alert('Función de compartir WhatsApp - En desarrollo');
 }

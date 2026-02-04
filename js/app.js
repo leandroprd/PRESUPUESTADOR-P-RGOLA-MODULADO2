@@ -374,9 +374,9 @@ export function calcularMateriales(auto = false, incluirPilaresRefuerzoParam) {
   // Solo mostrar alertas si NO es llamada automática (auto = false)
   
   // 1. Validar datos de cabecera
-  const comercial = document.getElementById('inputComercial')?.value?.trim();
-  const cliente = document.getElementById('inputCliente')?.value?.trim();
-  const refObra = document.getElementById('inputRefObra')?.value?.trim();
+  const comercial = document.getElementById('comercial')?.value?.trim();
+  const cliente = document.getElementById('cliente')?.value?.trim();
+  const refObra = document.getElementById('refObra')?.value?.trim();
 
   if (!comercial || !cliente || !refObra) {
     // Solo mostrar alerta si es llamada MANUAL (desde botón)

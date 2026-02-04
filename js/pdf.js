@@ -79,9 +79,9 @@ export function abrirVistaPreviaPDF() {
   console.log('👁️ Abriendo vista previa...');
 
   // Validar datos obligatorios antes de abrir
-  const comercial = document.getElementById('inputComercial')?.value?.trim() || '';
-  const cliente = document.getElementById('inputCliente')?.value?.trim() || '';
-  const refObra = document.getElementById('inputRefObra')?.value?.trim() || '';
+  const comercial = document.getElementById('comercial')?.value?.trim() || '';
+  const cliente = document.getElementById('cliente')?.value?.trim() || '';
+  const refObra = document.getElementById('refObra')?.value?.trim() || '';
 
   if (!comercial) {
     alert('⚠️ ATENCIÓN: Debes rellenar el campo "Comercial" antes de generar la vista previa.');
@@ -894,9 +894,9 @@ function generarPesoPerimetrosPaginado(informe, totales, datos) {
 // ============================================================================
 
 function leerDatosContexto() {
-  const comercial = document.getElementById('inputComercial')?.value || '';
-  const cliente = document.getElementById('inputCliente')?.value || '';
-  const refObra = document.getElementById('inputRefObra')?.value || '';
+  const comercial = document.getElementById('comercial')?.value || '';
+  const cliente = document.getElementById('cliente')?.value || '';
+  const refObra = document.getElementById('refObra')?.value || '';
   
   const ancho = parseFloat(document.getElementById('ancho')?.value) || 0;
   const salida = parseFloat(document.getElementById('salida')?.value) || 0;

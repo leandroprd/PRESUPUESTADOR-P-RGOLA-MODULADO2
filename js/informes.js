@@ -149,8 +149,8 @@ function prepararDetalleMaterial(materiales, piezasPerfiles, precios, config, re
         Object.entries(opt.barrasPorLongitud).forEach(([longMm, cant]) => {
           totalBarras += cant;
           const longM = Number(longMm) / 1000;
-          // Sin "m", con coma decimal, sin número de barras entre paréntesis (ya está en su columna)
-          longitudesInfo.push(`${longM.toFixed(1).replace('.', ',')}`);
+          // Sin "m", con coma decimal
+          longitudesInfo.push(`${longM.toFixed(1).replace('.', ',')} (${cant})`);
           importe += longM * cant * precioM;
         });
         longitudesBarraStr = longitudesInfo.join(", ");

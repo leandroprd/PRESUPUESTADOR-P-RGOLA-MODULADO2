@@ -261,51 +261,47 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
 
   y += 7;
 
-  // Ref. presupuesto
-  doc.setFont('helvetica', 'bold');  // Negrita
+  // Ref. presupuesto en su propia línea para evitar solapamientos
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(107, 114, 128);
   doc.text(`Ref. presupuesto: `, marginX, y);
   
-  // Valor de ref presupuesto
   doc.setFont('helvetica', 'normal');
   const refWidth = doc.getTextWidth(`Ref. presupuesto: `);
   doc.text(`${datos.codigoPresupuesto}`, marginX + refWidth, y);
-  y += 8;
+  y += 6;
 
-  // Datos comerciales con enunciados en negrita
-  doc.setFont('helvetica', 'bold');
+  // CAMBIO #1: Datos comerciales en líneas separadas para evitar desbordamiento
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(55, 65, 81);
   
-  const comercialText = 'Comercial: ';
-  const clienteText = 'Cliente: ';
-  const refObraText = 'Ref. obra: ';
-  
-  // Calcular anchos
-  const comercialWidth = doc.getTextWidth(comercialText);
-  const espacioEntreColumnas = 40;
-  
-  // Primera columna: Comercial
-  doc.text(comercialText, marginX, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(datos.comercial, marginX + comercialWidth, y);
-  
-  // Segunda columna: Cliente
-  const col2X = marginX + comercialWidth + doc.getTextWidth(datos.comercial) + espacioEntreColumnas;
+  // Comercial
   doc.setFont('helvetica', 'bold');
-  doc.text(clienteText, col2X, y);
+  doc.text('Comercial: ', marginX, y);
   doc.setFont('helvetica', 'normal');
-  const clienteWidth = doc.getTextWidth(clienteText);
-  doc.text(datos.cliente, col2X + clienteWidth, y);
+  const comercialLabelWidth = doc.getTextWidth('Comercial: ');
+  const comercialText = doc.splitTextToSize(datos.comercial, contentWidth - comercialLabelWidth - 10);
+  doc.text(comercialText, marginX + comercialLabelWidth, y);
+  y += 5;
   
-  // Tercera columna: Ref. obra
-  const col3X = col2X + clienteWidth + doc.getTextWidth(datos.cliente) + espacioEntreColumnas;
+  // Cliente
   doc.setFont('helvetica', 'bold');
-  doc.text(refObraText, col3X, y);
+  doc.text('Cliente: ', marginX, y);
   doc.setFont('helvetica', 'normal');
-  const refObraWidth = doc.getTextWidth(refObraText);
-  doc.text(datos.refObra, col3X + refObraWidth, y);
+  const clienteLabelWidth = doc.getTextWidth('Cliente: ');
+  const clienteText = doc.splitTextToSize(datos.cliente, contentWidth - clienteLabelWidth - 10);
+  doc.text(clienteText, marginX + clienteLabelWidth, y);
+  y += 5;
+  
+  // Ref. obra
+  doc.setFont('helvetica', 'bold');
+  doc.text('Ref. obra: ', marginX, y);
+  doc.setFont('helvetica', 'normal');
+  const refObraLabelWidth = doc.getTextWidth('Ref. obra: ');
+  const refObraText = doc.splitTextToSize(datos.refObra, contentWidth - refObraLabelWidth - 10);
+  doc.text(refObraText, marginX + refObraLabelWidth, y);
   
   y += 8;
   
@@ -701,6 +697,12 @@ function extraerDatosDelModal(modalContent) {
     }
   });
 
+  // CAMBIO #2: Extraer aviso amarillo si existe
+  const avisoElement = modalContent.querySelector('.aviso-amarillo');
+  datos.avisoRefuerzo = (avisoElement && avisoElement.textContent) 
+    ? avisoElement.textContent.trim() 
+    : '';
+
   return datos;
 }
 
@@ -848,10 +850,15 @@ function generarCabecera(datos, numPagina, titulo) {
           ${logoHTML}
         </div>
         <div class="pdf-header-ref-centro">
-          <div class="pdf-subtitulo-ref">Presupuesto Pérgola Bioclimática · Doha Sun</div>
+          <!-- Espacio central vacío -->
         </div>
         <div class="pdf-header-ref-right">
-          ${fechaFormateada}
+          <div style="font-weight: 700; font-size: 12pt; color: #0054a6; text-align: right; margin-bottom: 2mm;">
+            Presupuesto Pérgola Bioclimática · Doha Sun
+          </div>
+          <div style="font-size: 10pt; color: #4b5563; text-align: right;">
+            ${fechaFormateada}
+          </div>
         </div>
       </div>
       <div class="pdf-divider-ref"></div>
@@ -1092,14 +1099,21 @@ function obtenerTipoDocumento() {
 }
 
 function generarNombreArchivo(tipo) {
-  const codigoElement = document.getElementById('refCodeInline');
-  const codigo = codigoElement ? codigoElement.textContent : generarTimestamp();
+  // Intentar obtener la referencia desde varios elementos posibles
+  let codigo = document.getElementById('refCodeInline')?.textContent?.trim();
+  if (!codigo) {
+    codigo = document.getElementById('refCode')?.textContent?.trim();
+  }
+  if (!codigo) {
+    codigo = generarTimestamp();
+  }
 
-  let prefijo = 'PRESUPUESTO';
-  if (tipo === 'corte') prefijo = 'HOJA_CORTE';
-  if (tipo === 'peso') prefijo = 'PESO_PERIMETROS';
+  // CAMBIO #4: Nuevo formato de nombre de archivo
+  let nombreDocumento = 'Informe de Material';
+  if (tipo === 'corte') nombreDocumento = 'Hoja de Corte';
+  if (tipo === 'peso') nombreDocumento = 'Peso y Perímetros';
 
-  return `${prefijo}_${codigo}.pdf`;
+  return `${codigo} - ${nombreDocumento}.pdf`;
 }
 
 function generarTimestamp() {

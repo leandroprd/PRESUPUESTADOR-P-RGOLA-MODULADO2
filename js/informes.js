@@ -149,11 +149,11 @@ function prepararDetalleMaterial(materiales, piezasPerfiles, precios, config, re
         Object.entries(opt.barrasPorLongitud).forEach(([longMm, cant]) => {
           totalBarras += cant;
           const longM = Number(longMm) / 1000;
-          // Solo longitud, sin el número entre paréntesis
-          longitudesInfo.push(`${longM.toFixed(1).replace('.', ',')}`);
+          // CAMBIO 1: Solo longitud en metros, limpia y sin información de cantidad
+          longitudesInfo.push(`${longM.toFixed(1).replace('.', ',')} m`);
           importe += longM * cant * precioM;
         });
-        longitudesBarraStr = longitudesInfo.join(", ");
+        longitudesBarraStr = longitudesInfo.join(" / ");
       } else {
         longitudesBarraStr = "—";
       }

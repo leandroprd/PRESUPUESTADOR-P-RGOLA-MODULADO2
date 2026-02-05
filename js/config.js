@@ -377,10 +377,10 @@ export const CALIBRE_PILAR_IA = "125 × 125 mm";
 // TEXTOS DE AVISOS
 // ============================================================================
 export const AVISO_REFUERZO_TEXTO_PARED = 
-  "⚠️ Se recomienda añadir pilares de refuerzo en el lateral apoyado en pared para mayor estabilidad.";
+  "Se recomienda añadir pilares de refuerzo en el lateral apoyado en pared para mayor estabilidad.";
 
 export const AVISO_REFUERZO_TEXTO_ENTRE = 
-  "⚠️ Se recomienda añadir pilares de refuerzo en los laterales apoyados en pared para mayor estabilidad.";
+  "Se recomienda añadir pilares de refuerzo en los laterales apoyados en pared para mayor estabilidad.";
 
 // ============================================================================
 // DESCRIPCIONES DE TIPOS DE MONTAJE

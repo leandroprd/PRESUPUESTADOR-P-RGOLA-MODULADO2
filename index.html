@@ -1108,11 +1108,15 @@
         </div>
       </div>
 
-      <!-- Número de presupuesto -->
-      <div id="presupuestoBadge" style="margin-top: 0.6rem; font-size: 0.9rem;">
-        <span style="padding: 6px 12px; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 6px; color: #1e1b4b; font-weight: 600;">
+      <!-- Número de presupuesto y botones globales -->
+      <div id="presupuestoBadge" style="margin-top: 0.6rem; display: flex; align-items: center; gap: 0.75rem; justify-content: space-between; flex-wrap: wrap;">
+        <span style="padding: 6px 12px; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 6px; color: #1e1b4b; font-weight: 600; font-size: 0.9rem;">
           Nº de presupuesto: <span id="refCode"></span>
         </span>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="secondary" id="btnRecalcular" type="button" style="padding: 0.4rem 0.8rem; font-size: 0.82rem;">🔄 Limpiar</button>
+          <button class="secondary" id="btnNuevoPresupuesto" type="button" style="padding: 0.4rem 0.8rem; font-size: 0.82rem;">➕ Nuevo</button>
+        </div>
       </div>
     </div>
 
@@ -1168,185 +1172,187 @@
               <div class="field-note">Debe cumplirse siempre 1,50–4,00 m por módulo.</div>
             </div>
           </div>
+          
+          <div class="grid grid-3" style="margin-top: 0.7rem;">
+            <div class="field">
+              <label for="altura">Altura libre [m]</label>
+              <input id="altura" type="number" step="0.01" min="2.0" max="2.8" placeholder="Ej.: 2,50" />
+              <div class="field-note">Altura libre (máximo 2,80 m).</div>
+              <div class="field-error" id="alturaError"></div>
+            </div>
+          </div>
         </section>
 
-        <!-- TARJETA 2: Montaje, pilares y motor -->
+        <!-- TARJETA 2: Configuración (Montaje + Automatización + Acabados) -->
         <section class="card" style="margin-top: 0.85rem;">
           <div class="card-header">
             <div class="card-title">
               <span class="step-badge">2</span>
-              Montaje, pilares y motor
+              Configuración
             </div>
             <span class="pill">Configuración</span>
           </div>
 
-          <div class="grid grid-2">
-            <div class="field">
-              <label>Tipo de montaje</label>
-              <div class="pill-group" id="grupoMontaje">
-                <label class="pill-option">
-                  <input type="radio" name="montaje" value="pilares" checked />
-                  <span>Sobre pilares</span>
-                </label>
-                <label class="pill-option">
-                  <input type="radio" name="montaje" value="pared-ancho" />
-                  <span>A pared · sobre ancho</span>
-                </label>
-                <label class="pill-option">
-                  <input type="radio" name="montaje" value="pared-largo" />
-                  <span>A pared · sobre largo</span>
-                </label>
-                <label class="pill-option">
-                  <input type="radio" name="montaje" value="entre-paredes" />
-                  <span>Entre paredes</span>
-                </label>
+          <!-- ============ BLOQUE 1: MONTAJE Y ESTRUCTURA ============ -->
+          <div style="padding-bottom: 0.7rem; border-bottom: 1px solid var(--border-subtle);">
+            <h4 style="font-size: 0.9rem; font-weight: 600; color: var(--blue-dark); margin: 0 0 0.7rem 0;">Montaje y estructura</h4>
+            
+            <div class="grid grid-2">
+              <div class="field">
+                <label>Tipo de montaje</label>
+                <div class="pill-group" id="grupoMontaje">
+                  <label class="pill-option">
+                    <input type="radio" name="montaje" value="pilares" checked />
+                    <span>Sobre pilares</span>
+                  </label>
+                  <label class="pill-option">
+                    <input type="radio" name="montaje" value="pared-ancho" />
+                    <span>A pared · sobre ancho</span>
+                  </label>
+                  <label class="pill-option">
+                    <input type="radio" name="montaje" value="pared-largo" />
+                    <span>A pared · sobre largo</span>
+                  </label>
+                  <label class="pill-option">
+                    <input type="radio" name="montaje" value="entre-paredes" />
+                    <span>Entre paredes</span>
+                  </label>
+                </div>
+                <div class="field-note" id="textoMontaje"></div>
+                <div class="field-note" id="textoMontajeDetallado" style="display: none;"></div>
+                <div id="bloqueRefuerzo" class="refuerzo-bloque" style="display: none;">
+                  <label class="inline-checkbox">
+                    <input type="checkbox" id="chkPilaresRefuerzo" />
+                    <span>Añadir pilares de refuerzo</span>
+                  </label>
+                  <div class="aviso-amarillo" id="avisoRefuerzo" style="display: none;"></div>
+                </div>
               </div>
-              <div class="field-note" id="textoMontaje"></div>
-              <div class="field-note" id="textoMontajeDetallado" style="display: none;"></div>
-              <div id="bloqueRefuerzo" class="refuerzo-bloque" style="display: none;">
-                <label class="inline-checkbox">
-                  <input type="checkbox" id="chkPilaresRefuerzo" />
-                  <span>Añadir pilares de refuerzo</span>
-                </label>
-                <div class="aviso-amarillo" id="avisoRefuerzo" style="display: none;"></div>
-              </div>
-            </div>
 
-            <div class="field">
-              <label>Nº de pilares (calculado)</label>
-              <div id="pilaresDisplay" class="pilares-pill">—</div>
-              <div class="field-note" id="calibrePilaresDisplay">Calibre de los pilares: —</div>
-              <div class="field" style="margin-top: 0.6rem;">
-                <label for="altura">Altura libre [m]</label>
-                <input id="altura" type="number" step="0.01" min="2.0" max="2.8" placeholder="Ej.: 2,50" />
-                <div class="field-note">Altura libre (máximo 2,80 m).</div>
-                <div class="field-error" id="alturaError"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="warning" id="warning" style="display: none;"></div>
-
-          <div class="grid grid-2" style="margin-top: 0.7rem;">
-            <div class="field" id="campoPosicionPared" style="display: none;">
-              <label for="posicionPared">Posición de la pared</label>
-              <select id="posicionPared"></select>
-            </div>
-            <div class="field" id="campoEntreParedes" style="display: none;">
-              <label for="tipoEntreParedes">Paredes</label>
-              <select id="tipoEntreParedes">
-                <option value="laterales">Laterales</option>
-                <option value="frontales">Frontales</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="grid grid-2" style="margin-top: 0.7rem;">
-            <div class="field">
-              <label>Configuración de motores</label>
-              <div class="pill-group" id="grupoModoMotor">
-                <label class="pill-option">
-                  <input type="radio" name="modoMotor" value="todos-izquierda" checked />
-                  <span id="labelMotorIzquierda">Motor a izquierda</span>
-                </label>
-                <label class="pill-option">
-                  <input type="radio" name="modoMotor" value="todos-derecha" />
-                  <span id="labelMotorDerecha">Motor a derecha</span>
-                </label>
-                <label class="pill-option" id="pillPersonalizado">
-                  <input type="radio" name="modoMotor" value="personalizado" />
-                  <span id="labelMotorPersonalizado">Personalizado por módulo</span>
-                </label>
+              <div class="field">
+                <label>Nº de pilares (calculado)</label>
+                <div id="pilaresDisplay" class="pilares-pill" style="background: #f3f4f6; padding: 0.5rem; border-radius: 0.5rem; font-size: 1.1rem; font-weight: 700; color: var(--blue-dark); text-align: center; border: 2px solid #e5e7eb;">—</div>
+                <div class="field-note" id="calibrePilaresDisplay" style="margin-top: 0.4rem; font-style: italic; color: var(--text-soft);">Calibre de los pilares: —</div>
               </div>
             </div>
-            <div class="field">
-              <label for="mando">Mando</label>
-              <select id="mando">
-                <option value="con">Con mando</option>
-                <option value="sin">Sin mando</option>
-              </select>
-            </div>
-          </div>
 
-          <div class="field" id="motorPorModuloWrapper" style="display: none; margin-top: 0.7rem;">
-            <label>Motores por módulo</label>
-            <div id="motorPorModuloContainer" class="grid grid-2"></div>
-          </div>
+            <div class="warning" id="warning" style="display: none;"></div>
 
-          <div class="btn-row">
-            <button class="secondary" id="btnRecalcular" type="button">Limpiar</button>
-            <button class="secondary" id="btnNuevoPresupuesto" type="button">Nuevo presupuesto</button>
-          </div>
-        </section>
-
-        <!-- TARJETA 3: Acabados -->
-        <section class="card solo-web" id="preciosCard" style="margin-top: 0.9rem;">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="step-badge">3</span>
-              Acabados
-            </div>
-            <span class="pill">Acabados</span>
-          </div>
-
-          <div class="field">
-            <label>Colores de la pérgola</label>
-            <div class="pill-group" id="grupoColorPergola">
-              <label class="pill-option">
-                <input type="radio" name="colorModo" value="mono" checked />
-                <span>Pérgola monocolor</span>
-              </label>
-              <label class="pill-option">
-                <input type="radio" name="colorModo" value="bicolor" />
-                <span>Pérgola bicolor</span>
-              </label>
-            </div>
-
-            <div class="grid grid-2" style="margin-top: 0.5rem;">
-              <div class="field" id="campoColorGlobal">
-                <label for="colorGlobal">Acabado general</label>
-                <select id="colorGlobal">
-                  <option value="blanco">Blanco</option>
-                  <option value="textura">Textura</option>
-                  <option value="color">Color</option>
-                  <option value="anodizado">Anodizado</option>
-                  <option value="nature">Nature</option>
+            <div class="grid grid-2" style="margin-top: 0.7rem;">
+              <div class="field" id="campoPosicionPared" style="display: none;">
+                <label for="posicionPared">Posición de la pared</label>
+                <select id="posicionPared"></select>
+              </div>
+              <div class="field" id="campoEntreParedes" style="display: none;">
+                <label for="tipoEntreParedes">Paredes</label>
+                <select id="tipoEntreParedes">
+                  <option value="laterales">Laterales</option>
+                  <option value="frontales">Frontales</option>
                 </select>
               </div>
-              <div class="field" id="campoColorLamas" style="display: none;">
-                <label for="colorLamas">Color lamas</label>
-                <select id="colorLamas">
-                  <option value="blanco">Blanco</option>
-                  <option value="textura">Textura</option>
-                  <option value="color">Color</option>
-                  <option value="anodizado">Anodizado</option>
-                  <option value="nature">Nature</option>
-                </select>
+            </div>
+          </div>
+
+          <!-- ============ BLOQUE 2: AUTOMATIZACIÓN ============ -->
+          <div style="padding: 0.7rem 0; border-bottom: 1px solid var(--border-subtle);">
+            <h4 style="font-size: 0.9rem; font-weight: 600; color: var(--blue-dark); margin: 0 0 0.7rem 0;">Automatización</h4>
+            
+            <div class="grid grid-2">
+              <div class="field">
+                <label>Configuración de motores</label>
+                <div class="pill-group" id="grupoModoMotor">
+                  <label class="pill-option">
+                    <input type="radio" name="modoMotor" value="todos-izquierda" checked />
+                    <span id="labelMotorIzquierda">Motor a izquierda</span>
+                  </label>
+                  <label class="pill-option">
+                    <input type="radio" name="modoMotor" value="todos-derecha" />
+                    <span id="labelMotorDerecha">Motor a derecha</span>
+                  </label>
+                  <label class="pill-option" id="pillPersonalizado">
+                    <input type="radio" name="modoMotor" value="personalizado" />
+                    <span id="labelMotorPersonalizado">Personalizado por módulo</span>
+                  </label>
+                </div>
               </div>
-              <div class="field" id="campoColorPerimetro" style="display: none;">
-                <label for="colorPerimetro">Color perímetro</label>
-                <select id="colorPerimetro">
-                  <option value="blanco">Blanco</option>
-                  <option value="textura">Textura</option>
-                  <option value="color">Color</option>
-                  <option value="anodizado">Anodizado</option>
-                  <option value="nature">Nature</option>
+              <div class="field">
+                <label for="mando">Mando</label>
+                <select id="mando">
+                  <option value="con">Con mando</option>
+                  <option value="sin">Sin mando</option>
                 </select>
               </div>
             </div>
 
-            <div class="grid grid-2" style="margin-top: 0.5rem;">
-              <div class="field" id="refAcabadoGlobalWrap">
-                <label for="refAcabadoGlobal">Referencia acabado general</label>
-                <input id="refAcabadoGlobal" type="text" placeholder="Ej.: RAL 9016" />
+            <div class="field" id="motorPorModuloWrapper" style="display: none; margin-top: 0.7rem;">
+              <label>Motores por módulo</label>
+              <div id="motorPorModuloContainer" class="grid grid-2"></div>
+            </div>
+          </div>
+
+          <!-- ============ BLOQUE 3: ACABADOS ============ -->
+          <div style="padding-top: 0.7rem;">
+            <h4 style="font-size: 0.9rem; font-weight: 600; color: var(--blue-dark); margin: 0 0 0.7rem 0;">Acabados</h4>
+            
+            <div class="field">
+              <label>Colores de la pérgola</label>
+              <div class="pill-group" id="grupoColorPergola">
+                <label class="pill-option">
+                  <input type="radio" name="colorModo" value="mono" checked />
+                  <span>Pérgola monocolor</span>
+                </label>
+                <label class="pill-option">
+                  <input type="radio" name="colorModo" value="bicolor" />
+                  <span>Pérgola bicolor</span>
+                </label>
               </div>
-              <div class="field" id="refAcabadoLamasWrap" style="display: none;">
-                <label for="refAcabadoLamas">Referencia acabado lamas</label>
-                <input id="refAcabadoLamas" type="text" placeholder="Ej.: RAL 7016" />
+
+              <div class="grid grid-2" style="margin-top: 0.5rem;">
+                <div class="field" id="campoColorGlobal">
+                  <label for="colorGlobal">Acabado general</label>
+                  <select id="colorGlobal">
+                    <option value="blanco">Blanco</option>
+                    <option value="textura">Textura</option>
+                    <option value="color">Color</option>
+                    <option value="anodizado">Anodizado</option>
+                    <option value="nature">Nature</option>
+                  </select>
+                </div>
+                <div class="field" id="campoColorLamas" style="display: none;">
+                  <label for="colorLamas">Color lamas</label>
+                  <select id="colorLamas">
+                    <option value="blanco">Blanco</option>
+                    <option value="textura">Textura</option>
+                    <option value="color">Color</option>
+                    <option value="anodizado">Anodizado</option>
+                    <option value="nature">Nature</option>
+                  </select>
+                </div>
+                <div class="field" id="campoColorPerimetro" style="display: none;">
+                  <label for="colorPerimetro">Color perímetro</label>
+                  <select id="colorPerimetro">
+                    <option value="blanco">Blanco</option>
+                    <option value="textura">Textura</option>
+                    <option value="color">Color</option>
+                    <option value="anodizado">Anodizado</option>
+                    <option value="nature">Nature</option>
+                  </select>
+                </div>
               </div>
-              <div class="field" id="refAcabadoPerimetroWrap" style="display: none;">
-                <label for="refAcabadoPerimetro">Referencia acabado perímetro</label>
-                <input id="refAcabadoPerimetro" type="text" placeholder="Ej.: RAL 9010" />
+
+              <div class="grid grid-2" style="margin-top: 0.5rem;">
+                <div class="field" id="refAcabadoGlobalWrap">
+                  <label for="refAcabadoGlobal">Referencia acabado general</label>
+                  <input id="refAcabadoGlobal" type="text" placeholder="Ej.: RAL 9016" />
+                </div>
+                <div class="field" id="refAcabadoLamasWrap" style="display: none;">
+                  <label for="refAcabadoLamas">Referencia acabado lamas</label>
+                  <input id="refAcabadoLamas" type="text" placeholder="Ej.: RAL 7016" />
+                </div>
+                <div class="field" id="refAcabadoPerimetroWrap" style="display: none;">
+                  <label for="refAcabadoPerimetro">Referencia acabado perímetro</label>
+                  <input id="refAcabadoPerimetro" type="text" placeholder="Ej.: RAL 9010" />
+                </div>
               </div>
             </div>
           </div>
@@ -1357,11 +1363,11 @@
            COLUMNA DERECHA: VISUALIZACIÓN
            ==================================== -->
       <div>
-        <!-- TARJETA 4: Esquema -->
+        <!-- TARJETA 3: Esquema -->
         <section class="card solo-web">
           <div class="card-header">
             <div class="card-title">
-              <span class="step-badge">4</span>
+              <span class="step-badge">3</span>
               Vista esquemática de la pérgola
             </div>
           </div>
@@ -1386,12 +1392,12 @@
           </div>
         </section>
 
-        <!-- TARJETA 5: Resumen de configuración -->
+        <!-- TARJETA 4: Resumen de configuración -->
         <section class="card" id="resumenCard" style="margin-top: 0.9rem;">
           <div class="card-header">
             <div>
               <div class="card-title">
-                <span class="step-badge">5</span>
+                <span class="step-badge">4</span>
                 Resumen de configuración
               </div>
               <div class="ref-line" id="refLine" style="display: none;">
@@ -1437,14 +1443,14 @@
     </div>
 
     <!-- ============================================
-         TARJETA 6: INFORMES ECONÓMICOS (ANCHO COMPLETO)
+         TARJETA 5: INFORMES ECONÓMICOS (ANCHO COMPLETO)
          ============================================ -->
     <div class="informes-fullwidth">
       <section class="card solo-web" id="informesCard">
         <div class="informes-sticky-header">
           <div class="card-header" style="margin-bottom: 0;">
             <div class="card-title">
-              <span class="step-badge">6</span>
+              <span class="step-badge">5</span>
               Informes económicos
             </div>
             <span class="pill">Informes</span>
@@ -1552,7 +1558,7 @@
          FOOTER
          ============================================ -->
     <footer>
-      Aluminios Galisur · Presupuestador interno serie Doha Sun. Prueba 8.
+      Aluminios Galisur · Presupuestador interno serie Doha Sun. Prueba 9.
     </footer>
   </div>
 

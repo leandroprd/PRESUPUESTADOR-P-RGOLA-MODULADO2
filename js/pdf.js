@@ -233,17 +233,17 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   }
 
   // Título y fecha (derecha)
-  // Título en azul corporativo #0054a6, negrita y tamaño mayor
+  // CAMBIO 7: Título en azul corporativo, negrita y tamaño 14pt para mejor jerarquía visual
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
+  doc.setFontSize(14);
   doc.setTextColor(0, 84, 166); // Azul corporativo GALISUR
   doc.text('Presupuesto Pérgola Bioclimática · Doha Sun', pageWidth - marginX, y + 8, { align: 'right' });
   
-  // Fecha justo debajo del título
+  // CAMBIO 7: Fecha clara justo debajo con tamaño 10pt
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(107, 114, 128); // Gris
-  doc.text(datos.fecha || '', pageWidth - marginX, y + 13, { align: 'right' });
+  doc.setFontSize(10);
+  doc.setTextColor(75, 85, 99); // Gris oscuro para mejor legibilidad
+  doc.text(`Fecha: ${datos.fecha || ''}`, pageWidth - marginX, y + 14, { align: 'right' });
 
   y += 20;
 
@@ -466,13 +466,15 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
       const numBarras = m.numBarras || '—';
       const precioUnit = m.precioUnit || '0,00';
       const importe = m.importe || '0,00 €';
+      // Cambio 14: Usar la referencia de acabado real
+      const refAcabado = m.refAcabado || 'SIN ESPECIFICAR';
       
       return [
         m.tipo,
         m.ref,
         m.descripcion,
         m.acabado,
-        'SIN ESPECIFICAR',
+        refAcabado,  // Usar referencia real, no hardcodear
         longBarra,  // Sin procesar - tal cual viene
         numBarras,
         precioUnit,
@@ -960,7 +962,7 @@ function generarFilasTabla(filas) {
       <td>${item.ref || '—'}</td>
       <td>${item.descripcion || '—'}</td>
       <td>${item.acabado || 'Blanco'}</td>
-      <td>SIN ESPECIFICAR</td>
+      <td>${item.refAcabado || 'SIN ESPECIFICAR'}</td>
       <td style="text-align: right;">${item.longitudBarra || '—'}</td>
       <td style="text-align: right;">${item.numBarras || '—'}</td>
       <td style="text-align: right;">${item.precioUnitario || '0,00 €'}</td>

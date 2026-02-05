@@ -714,8 +714,9 @@ function extraerDatosDelModal(modalContent) {
   // Limpiar caracteres extraños que pueden venir del HTML
   if (avisoTexto) {
     avisoTexto = avisoTexto
-      .replace(/^[&þ\s]+/, '') // Quitar caracteres raros al inicio
+      .replace(/^[\u26A0\u26A1\u26D4\uFE0F&þ\s]+/, '') // Quitar símbolos de advertencia y caracteres raros al inicio
       .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Quitar caracteres de control
+      .replace(/\s+/g, ' ') // Normalizar espacios múltiples a uno solo
       .trim();
   }
   
@@ -917,7 +918,7 @@ function generarBloqueDatosPresupuesto(datos) {
           <li><strong>Tipo de montaje:</strong> ${datos.tipoMontajeTexto}</li>
           <li><strong>Nº pilares calculados:</strong> ${datos.numPilares}</li>
           <li><strong>Motores:</strong> ${datos.modoMotorTexto}</li>
-          <li><strong>Número de lamas (tabla):</strong> ${datos.numLamas}</li>
+          <li><strong>Número de lamas:</strong> ${datos.numLamas}</li>
           <li><strong>Mando:</strong> ${datos.mandoTexto}</li>
         </ul>
       </div>

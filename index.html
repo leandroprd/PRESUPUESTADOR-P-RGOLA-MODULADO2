@@ -8,7 +8,6 @@
   <!-- Librerías jsPDF para generación de PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <style>
     /* ============================================
@@ -158,29 +157,6 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
-
-    /* Subtítulos de bloque en configuración */
-    .block-subtitle {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--blue-main);
-      margin: 1.2rem 0 0.6rem 0;
-      padding-bottom: 0.4rem;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    .block-subtitle:first-of-type {
-      margin-top: 0;
-    }
-
-    /* Campos calculados (no editables) */
-    .calculated-field {
-      background: #f9fafb;
-      padding: 0.5rem;
-      border-radius: 0.4rem;
-      border: 1px solid #e5e7eb;
-    }
-
 
     /* ============================================
        DATOS GENERALES PRESUPUESTO
@@ -1132,15 +1108,11 @@
         </div>
       </div>
 
-      <!-- Número de presupuesto y botones globales -->
-      <div id="presupuestoBadge" style="margin-top: 0.6rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+      <!-- Número de presupuesto -->
+      <div id="presupuestoBadge" style="margin-top: 0.6rem; font-size: 0.9rem;">
         <span style="padding: 6px 12px; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 6px; color: #1e1b4b; font-weight: 600;">
           Nº de presupuesto: <span id="refCode"></span>
         </span>
-        <div style="display: flex; gap: 0.5rem;">
-          <button class="secondary" id="btnRecalcular" type="button" style="padding: 0.4rem 0.9rem; font-size: 0.85rem;">Limpiar</button>
-          <button class="secondary" id="btnNuevoPresupuesto" type="button" style="padding: 0.4rem 0.9rem; font-size: 0.85rem;">Nuevo presupuesto</button>
-        </div>
       </div>
     </div>
 
@@ -1175,12 +1147,6 @@
               <div class="field-note">Ancho en sentido de lamas. Mínimo 1,50 m. Máx. 4,00 m por módulo.</div>
               <div class="field-error" id="anchoError"></div>
             </div>
-            <div class="field">
-              <label for="altura">Altura libre [m]</label>
-              <input id="altura" type="number" step="0.01" min="2.0" max="2.8" placeholder="Ej.: 2,50" />
-              <div class="field-note">Altura libre (máximo 2,80 m).</div>
-              <div class="field-error" id="alturaError"></div>
-            </div>
           </div>
 
           <div class="note">
@@ -1204,18 +1170,15 @@
           </div>
         </section>
 
-        <!-- TARJETA 2: Configuración (fusión de antiguas tarjetas 2 y 3) -->
+        <!-- TARJETA 2: Montaje, pilares y motor -->
         <section class="card" style="margin-top: 0.85rem;">
           <div class="card-header">
             <div class="card-title">
               <span class="step-badge">2</span>
-              Configuración
+              Montaje, pilares y motor
             </div>
             <span class="pill">Configuración</span>
           </div>
-
-          <!-- ============ BLOQUE 1: MONTAJE Y ESTRUCTURA ============ -->
-          <div class="block-subtitle">Montaje y estructura</div>
 
           <div class="grid grid-2">
             <div class="field">
@@ -1249,10 +1212,16 @@
               </div>
             </div>
 
-            <div class="field calculated-field">
+            <div class="field">
               <label>Nº de pilares (calculado)</label>
               <div id="pilaresDisplay" class="pilares-pill">—</div>
               <div class="field-note" id="calibrePilaresDisplay">Calibre de los pilares: —</div>
+              <div class="field" style="margin-top: 0.6rem;">
+                <label for="altura">Altura libre [m]</label>
+                <input id="altura" type="number" step="0.01" min="2.0" max="2.8" placeholder="Ej.: 2,50" />
+                <div class="field-note">Altura libre (máximo 2,80 m).</div>
+                <div class="field-error" id="alturaError"></div>
+              </div>
             </div>
           </div>
 
@@ -1272,10 +1241,7 @@
             </div>
           </div>
 
-          <!-- ============ BLOQUE 2: AUTOMATIZACIÓN ============ -->
-          <div class="block-subtitle">Automatización</div>
-
-          <div class="grid grid-2">
+          <div class="grid grid-2" style="margin-top: 0.7rem;">
             <div class="field">
               <label>Configuración de motores</label>
               <div class="pill-group" id="grupoModoMotor">
@@ -1307,8 +1273,21 @@
             <div id="motorPorModuloContainer" class="grid grid-2"></div>
           </div>
 
-          <!-- ============ BLOQUE 3: ACABADOS ============ -->
-          <div class="block-subtitle">Acabados</div>
+          <div class="btn-row">
+            <button class="secondary" id="btnRecalcular" type="button">Limpiar</button>
+            <button class="secondary" id="btnNuevoPresupuesto" type="button">Nuevo presupuesto</button>
+          </div>
+        </section>
+
+        <!-- TARJETA 3: Acabados -->
+        <section class="card solo-web" id="preciosCard" style="margin-top: 0.9rem;">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="step-badge">3</span>
+              Acabados
+            </div>
+            <span class="pill">Acabados</span>
+          </div>
 
           <div class="field">
             <label>Colores de la pérgola</label>
@@ -1378,11 +1357,11 @@
            COLUMNA DERECHA: VISUALIZACIÓN
            ==================================== -->
       <div>
-        <!-- TARJETA 3: Esquema -->
+        <!-- TARJETA 4: Esquema -->
         <section class="card solo-web">
           <div class="card-header">
             <div class="card-title">
-              <span class="step-badge">3</span>
+              <span class="step-badge">4</span>
               Vista esquemática de la pérgola
             </div>
           </div>
@@ -1407,12 +1386,12 @@
           </div>
         </section>
 
-        <!-- TARJETA 4: Resumen de configuración -->
+        <!-- TARJETA 5: Resumen de configuración -->
         <section class="card" id="resumenCard" style="margin-top: 0.9rem;">
           <div class="card-header">
             <div>
               <div class="card-title">
-                <span class="step-badge">4</span>
+                <span class="step-badge">5</span>
                 Resumen de configuración
               </div>
               <div class="ref-line" id="refLine" style="display: none;">
@@ -1458,14 +1437,14 @@
     </div>
 
     <!-- ============================================
-         TARJETA 5: INFORMES ECONÓMICOS (ANCHO COMPLETO)
+         TARJETA 6: INFORMES ECONÓMICOS (ANCHO COMPLETO)
          ============================================ -->
     <div class="informes-fullwidth">
       <section class="card solo-web" id="informesCard">
         <div class="informes-sticky-header">
           <div class="card-header" style="margin-bottom: 0;">
             <div class="card-title">
-              <span class="step-badge">5</span>
+              <span class="step-badge">6</span>
               Informes económicos
             </div>
             <span class="pill">Informes</span>
@@ -1573,7 +1552,7 @@
          FOOTER
          ============================================ -->
     <footer>
-      Aluminios Galisur · Presupuestador interno serie Doha Sun. Prueba 7.
+      Aluminios Galisur · Presupuestador interno serie Doha Sun. Prueba 8.
     </footer>
   </div>
 

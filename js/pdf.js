@@ -169,15 +169,9 @@ export async function descargarPDFDesdeModal() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF('p', 'mm', 'a4');
 
-  const modalContent = document.getElementById('pdfPreviewContent');
-  if (!modalContent) {
-    alert('Error: No se encuentra el contenido.');
-    return;
-  }
-
   try {
-    // Extraer datos del HTML
-    const datos = extraerDatosDelModal(modalContent);
+    // Leer datos directamente del contexto (igual que la vista previa)
+    const datos = leerDatosContexto();
     
     // VALIDACIÓN: Verificar que comercial, cliente y ref obra están rellenos
     if (!datos.comercial || datos.comercial === '—' || !datos.comercial.trim()) {
@@ -195,9 +189,17 @@ export async function descargarPDFDesdeModal() {
       return;
     }
     
-    const materiales = extraerMaterialesDelModal(modalContent);
-    const totales = extraerTotalesDelModal(modalContent);
+    // Obtener materiales y totales del informe
+    const informe = obtenerUltimoInforme();
+    if (!informe || !informe.detalleMaterial) {
+      alert('No hay datos del informe. Por favor, calcula primero la configuración.');
+      return;
+    }
     
+    const materiales = informe.detalleMaterial;
+    const totales = obtenerTotales();
+    
+    const modalContent = document.getElementById('pdfPreviewContent');
     // Convertir SVG a imagen
     const svgImagen = await convertirSVGaImagen(modalContent);
 
@@ -232,15 +234,17 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
     }
   }
 
-  // Título (minimalista - solo "Presupuesto Pérgola Bioclimática · Doha Sun")
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  doc.setTextColor(107, 114, 128); // Gris
-  doc.text('Presupuesto Pérgola Bioclimática · Doha Sun', 55, y + 10);
+  // Título (derecha, negrita, destacado)
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(31, 41, 55); // Gris oscuro
+  doc.text('Presupuesto Pérgola Bioclimática · Doha Sun', pageWidth - marginX, y + 8, { align: 'right' });
 
-  // Fecha
-  doc.setTextColor(31, 41, 55);
-  doc.text(datos.fecha || '', pageWidth - marginX, y + 8, { align: 'right' });
+  // Fecha (derecha, debajo del título)
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(107, 114, 128); // Gris
+  doc.text(datos.fecha, pageWidth - marginX, y + 14, { align: 'right' });
 
   y += 20;
 
@@ -288,13 +292,13 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   
   let yDatos = y + 12;
   const datosTexto = [
-    `• Largo/salida: ${datos.salida} m · Ancho: ${datos.ancho} m · Altura libre: ${datos.altura} m`,
+    `• Largo/salida: ${datos.salida.toFixed(2)} m · Ancho: ${datos.ancho.toFixed(2)} m · Altura libre: ${datos.altura.toFixed(2)} m`,
     `• Módulos: ${datos.modulos}`,
-    `• Tipo de montaje: ${datos.tipoMontaje}`,
+    `• Tipo de montaje: ${datos.tipoMontajeTexto}`,
     `• Nº pilares calculados: ${datos.numPilares}`,
-    `• Motores: ${datos.motores}`,
+    `• Motores: ${datos.modoMotorTexto}`,
     `• Número de lamas (tabla): ${datos.numLamas}`,
-    `• Mando: ${datos.mando}`
+    `• Mando: ${datos.mandoTexto}`
   ];
 
   datosTexto.forEach(texto => {
@@ -374,22 +378,16 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
       'IMPORTE (€)'
     ]],
     body: materiales.map(m => {
-      // Extraer solo los números, sin unidades
-      const longBarra = m.longitudBarra.replace(/[^\d.,]/g, '').replace('.', ',');
-      const numBarras = m.numBarras.replace(/[^\d]/g, '');
-      const precioUnit = m.precioUnit.replace(/[^\d.,]/g, '').replace('.', ',');
-      const importe = m.importe.replace(/[^\d.,]/g, '').replace('.', ',');
-      
       return [
         m.tipo,
         m.ref,
         m.descripcion,
         m.acabado,
-        'SIN ESPECIFICAR',
-        longBarra,
-        numBarras,
-        precioUnit,
-        importe
+        m.refAcabado || 'SIN ESPECIFICAR',
+        m.longitudBarra,
+        m.numBarras,
+        m.precioUnitario,
+        typeof m.importe === 'number' ? m.importe.toFixed(2).replace('.', ',') : m.importe
       ];
     }),
     styles: {
@@ -448,7 +446,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   doc.text('Total perfiles', totalesX + 4, yTotal);
   doc.setTextColor(31, 41, 55);
   doc.setFont('helvetica', 'bold');
-  doc.text(totales.perfiles, totalesX + totalesWidth - 4, yTotal, { align: 'right' });
+  doc.text(precioFormatearEuro(totales.subtotalAluminio), totalesX + totalesWidth - 4, yTotal, { align: 'right' });
 
   yTotal += 5;
   doc.setFont('helvetica', 'normal');
@@ -456,7 +454,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   doc.text('Total accesorios', totalesX + 4, yTotal);
   doc.setTextColor(31, 41, 55);
   doc.setFont('helvetica', 'bold');
-  doc.text(totales.accesorios, totalesX + totalesWidth - 4, yTotal, { align: 'right' });
+  doc.text(precioFormatearEuro(totales.subtotalAccesorios), totalesX + totalesWidth - 4, yTotal, { align: 'right' });
 
   yTotal += 7;
   doc.setDrawColor(3, 105, 161);
@@ -467,7 +465,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   doc.setFontSize(11);
   doc.setTextColor(3, 105, 161);
   doc.text('Total materiales', totalesX + 4, yTotal + 2);
-  doc.text(totales.total, totalesX + totalesWidth - 4, yTotal + 2, { align: 'right' });
+  doc.text(precioFormatearEuro(totales.totalGeneral), totalesX + totalesWidth - 4, yTotal + 2, { align: 'right' });
 
   // ========== PIE DE PÁGINA ==========
   

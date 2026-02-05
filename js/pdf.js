@@ -639,7 +639,7 @@ async function convertirSVGaImagen(modalContent) {
 
 function extraerDatosDelModal(modalContent) {
   const datos = {
-    fecha: modalContent.querySelector('.pdf-header-ref-right')?.textContent?.trim() || '',
+    fecha: modalContent.querySelector('.pdf-fecha-header')?.textContent?.trim() || '',
     codigoPresupuesto: '',
     comercial: '—',
     cliente: '—',
@@ -699,9 +699,19 @@ function extraerDatosDelModal(modalContent) {
 
   // CAMBIO #2: Extraer aviso amarillo si existe
   const avisoElement = modalContent.querySelector('.aviso-amarillo');
-  datos.avisoRefuerzo = (avisoElement && avisoElement.textContent) 
+  let avisoTexto = (avisoElement && avisoElement.textContent) 
     ? avisoElement.textContent.trim() 
     : '';
+  
+  // CAMBIO #7: Limpiar caracteres extraños que pueden venir del HTML
+  if (avisoTexto) {
+    avisoTexto = avisoTexto
+      .replace(/^[&þ\s]+/, '') // Quitar caracteres raros al inicio
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Quitar caracteres de control
+      .trim();
+  }
+  
+  datos.avisoRefuerzo = avisoTexto;
 
   return datos;
 }
@@ -856,7 +866,7 @@ function generarCabecera(datos, numPagina, titulo) {
           <div style="font-weight: 700; font-size: 12pt; color: #0054a6; text-align: right; margin-bottom: 2mm;">
             Presupuesto Pérgola Bioclimática · Doha Sun
           </div>
-          <div style="font-size: 10pt; color: #4b5563; text-align: right;">
+          <div class="pdf-fecha-header" style="font-size: 10pt; color: #4b5563; text-align: right;">
             ${fechaFormateada}
           </div>
         </div>
@@ -1079,9 +1089,17 @@ function leerDatosContexto() {
   
   // Avisos (Cambio 7)
   const avisoRefuerzo = document.getElementById('avisoRefuerzo');
-  const textoAviso = (avisoRefuerzo && avisoRefuerzo.style.display !== 'none') 
+  let textoAviso = (avisoRefuerzo && avisoRefuerzo.style.display !== 'none') 
     ? avisoRefuerzo.textContent.trim() 
     : '';
+  
+  // CAMBIO #7: Limpiar caracteres extraños
+  if (textoAviso) {
+    textoAviso = textoAviso
+      .replace(/^[&þ\s]+/, '') // Quitar caracteres raros al inicio
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Quitar caracteres de control
+      .trim();
+  }
 
   return {
     comercial, cliente, refObra,

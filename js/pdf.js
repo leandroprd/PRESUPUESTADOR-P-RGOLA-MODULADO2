@@ -279,7 +279,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   doc.setFont('helvetica', 'bold');
   doc.text('Comercial: ', marginX, y);
   doc.setFont('helvetica', 'normal');
-  const comercialLabelWidth = doc.getTextWidth('Comercial: ');
+  const comercialLabelWidth = doc.getTextWidth('Comercial: ') + 3; // +3mm extra para compensar
   const comercialText = doc.splitTextToSize(datos.comercial, contentWidth - comercialLabelWidth - 10);
   doc.text(comercialText, marginX + comercialLabelWidth, y);
   y += 7; // AUMENTADO de 5 a 7
@@ -288,7 +288,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   doc.setFont('helvetica', 'bold');
   doc.text('Cliente: ', marginX, y);
   doc.setFont('helvetica', 'normal');
-  const clienteLabelWidth = doc.getTextWidth('Cliente: ');
+  const clienteLabelWidth = doc.getTextWidth('Cliente: ') + 3; // +3mm extra para compensar
   const clienteText = doc.splitTextToSize(datos.cliente, contentWidth - clienteLabelWidth - 10);
   doc.text(clienteText, marginX + clienteLabelWidth, y);
   y += 7; // AUMENTADO de 5 a 7
@@ -297,7 +297,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   doc.setFont('helvetica', 'bold');
   doc.text('Ref. obra: ', marginX, y);
   doc.setFont('helvetica', 'normal');
-  const refObraLabelWidth = doc.getTextWidth('Ref. obra: ');
+  const refObraLabelWidth = doc.getTextWidth('Ref. obra: ') + 3; // +3mm extra para compensar
   const refObraText = doc.splitTextToSize(datos.refObra, contentWidth - refObraLabelWidth - 10);
   doc.text(refObraText, marginX + refObraLabelWidth, y);
   
@@ -385,7 +385,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
     `• Tipo de montaje: ${datos.tipoMontaje}`,
     `• Nº pilares calculados: ${datos.numPilares}`,
     `• Motores: ${datos.motores}`,
-    `• Número de lamas: ${datos.numLamas}`,
+    `• Número de lamas (tabla): ${datos.numLamas}`,
     `• Mando: ${datos.mando}`
   ];
 
@@ -699,7 +699,8 @@ function extraerDatosDelModal(modalContent) {
     } else if (texto.includes('Motores:')) {
       datos.motores = texto.replace('Motores:', '').trim();
     } else if (texto.includes('Número de lamas')) {
-      datos.numLamas = texto.replace(/Número de lamas\s*\(tabla\)?:/g, '').trim();
+      // Flexible: funciona con "Número de lamas:" o "Número de lamas (tabla):"
+      datos.numLamas = texto.replace(/Número de lamas\s*(\(tabla\))?:/i, '').trim();
     } else if (texto.includes('Mando:')) {
       datos.mando = texto.replace('Mando:', '').trim();
     }
@@ -714,9 +715,9 @@ function extraerDatosDelModal(modalContent) {
   // Limpiar caracteres extraños que pueden venir del HTML
   if (avisoTexto) {
     avisoTexto = avisoTexto
-      .replace(/^[\u26A0\u26A1\u26D4\uFE0F&þ\s]+/, '') // Quitar símbolos de advertencia y caracteres raros al inicio
+      .replace(/[\u0080-\uFFFF]/g, '') // Eliminar TODOS los caracteres no-ASCII (incluye emoji)
       .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Quitar caracteres de control
-      .replace(/\s+/g, ' ') // Normalizar espacios múltiples a uno solo
+      .replace(/\s+/g, ' ') // Normalizar espacios múltiples
       .trim();
   }
   
@@ -903,9 +904,9 @@ function generarBloqueDatosPresupuesto(datos) {
       </div>
       
       <div class="pdf-datos-comerciales-ref">
-        <div><strong>Comercial: </strong>${datos.comercial || '—'}</div>
-        <div><strong>Cliente: </strong>${datos.cliente || '—'}</div>
-        <div><strong>Ref. obra: </strong>${datos.refObra || '—'}</div>
+        <div><strong>Comercial:</strong> ${datos.comercial || '—'}</div>
+        <div><strong>Cliente:</strong> ${datos.cliente || '—'}</div>
+        <div><strong>Ref. obra:</strong> ${datos.refObra || '—'}</div>
       </div>
       
       ${bloqueAviso}
@@ -918,7 +919,7 @@ function generarBloqueDatosPresupuesto(datos) {
           <li><strong>Tipo de montaje:</strong> ${datos.tipoMontajeTexto}</li>
           <li><strong>Nº pilares calculados:</strong> ${datos.numPilares}</li>
           <li><strong>Motores:</strong> ${datos.modoMotorTexto}</li>
-          <li><strong>Número de lamas:</strong> ${datos.numLamas}</li>
+          <li><strong>Número de lamas (tabla):</strong> ${datos.numLamas}</li>
           <li><strong>Mando:</strong> ${datos.mandoTexto}</li>
         </ul>
       </div>
@@ -1105,9 +1106,8 @@ function leerDatosContexto() {
   // Limpiar caracteres extraños
   if (textoAviso) {
     textoAviso = textoAviso
-      .replace(/^[\u26A0\u26A1\u26D4\uFE0F&þ\s]+/, '') // Quitar símbolos de advertencia y caracteres raros al inicio
+      .replace(/^[&þ\s]+/, '') // Quitar caracteres raros al inicio
       .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Quitar caracteres de control
-      .replace(/\s+/g, ' ') // Normalizar espacios múltiples a uno solo
       .trim();
   }
 

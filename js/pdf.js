@@ -263,12 +263,12 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(107, 114, 128);
-  doc.text(`Ref. presupuesto:`, marginX, y);
+  doc.text('Ref. presupuesto: ', marginX, y);
   
   doc.setFont('helvetica', 'normal');
-  const refWidth = doc.getTextWidth(`Ref. presupuesto: `); // Espacio incluido para cálculo
-  doc.text(` ${datos.codigoPresupuesto}`, marginX + refWidth, y);
-  y += 7;
+  const refWidth = doc.getTextWidth('Ref. presupuesto: ');
+  doc.text(datos.codigoPresupuesto, marginX + refWidth, y);
+  y += 8;
 
   // CORRECCIÓN: Datos comerciales con mejor espaciado (7mm entre líneas)
   doc.setFont('helvetica', 'normal');
@@ -277,7 +277,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   
   // Comercial
   doc.setFont('helvetica', 'bold');
-  doc.text('Comercial:', marginX, y);
+  doc.text('Comercial: ', marginX, y);
   doc.setFont('helvetica', 'normal');
   const comercialLabelWidth = doc.getTextWidth('Comercial: ');
   const comercialText = doc.splitTextToSize(datos.comercial, contentWidth - comercialLabelWidth - 10);
@@ -286,7 +286,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   
   // Cliente
   doc.setFont('helvetica', 'bold');
-  doc.text('Cliente:', marginX, y);
+  doc.text('Cliente: ', marginX, y);
   doc.setFont('helvetica', 'normal');
   const clienteLabelWidth = doc.getTextWidth('Cliente: ');
   const clienteText = doc.splitTextToSize(datos.cliente, contentWidth - clienteLabelWidth - 10);
@@ -295,7 +295,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   
   // Ref. obra
   doc.setFont('helvetica', 'bold');
-  doc.text('Ref. obra:', marginX, y);
+  doc.text('Ref. obra: ', marginX, y);
   doc.setFont('helvetica', 'normal');
   const refObraLabelWidth = doc.getTextWidth('Ref. obra: ');
   const refObraText = doc.splitTextToSize(datos.refObra, contentWidth - refObraLabelWidth - 10);

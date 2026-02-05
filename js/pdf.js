@@ -223,7 +223,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
 
   // ========== CABECERA ==========
   
-  // Logo
+  // Logo (izquierda)
   if (logoBase64) {
     try {
       doc.addImage(logoBase64, 'PNG', marginX, y, 30, 15);
@@ -232,15 +232,18 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
     }
   }
 
-  // Título (minimalista - solo "Presupuesto Pérgola Bioclimática · Doha Sun")
+  // Título y fecha (derecha)
+  // Título en azul corporativo #0054a6, negrita y tamaño mayor
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(0, 84, 166); // Azul corporativo GALISUR
+  doc.text('Presupuesto Pérgola Bioclimática · Doha Sun', pageWidth - marginX, y + 8, { align: 'right' });
+  
+  // Fecha justo debajo del título
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
+  doc.setFontSize(9);
   doc.setTextColor(107, 114, 128); // Gris
-  doc.text('Presupuesto Pérgola Bioclimática · Doha Sun', 55, y + 10);
-
-  // Fecha
-  doc.setTextColor(31, 41, 55);
-  doc.text(datos.fecha || '', pageWidth - marginX, y + 8, { align: 'right' });
+  doc.text(datos.fecha || '', pageWidth - marginX, y + 13, { align: 'right' });
 
   y += 20;
 
@@ -259,17 +262,70 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   y += 7;
 
   // Ref. presupuesto
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('helvetica', 'bold');  // Negrita
   doc.setFontSize(9);
   doc.setTextColor(107, 114, 128);
-  doc.text(`Ref. presupuesto: ${datos.codigoPresupuesto}`, marginX, y);
+  doc.text(`Ref. presupuesto: `, marginX, y);
+  
+  // Valor de ref presupuesto
+  doc.setFont('helvetica', 'normal');
+  const refWidth = doc.getTextWidth(`Ref. presupuesto: `);
+  doc.text(`${datos.codigoPresupuesto}`, marginX + refWidth, y);
   y += 8;
 
-  // Datos comerciales
+  // Datos comerciales con enunciados en negrita
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
   doc.setTextColor(55, 65, 81);
-  const datosComerciales = `Comercial: ${datos.comercial}    Cliente: ${datos.cliente}    Ref. obra: ${datos.refObra}`;
-  doc.text(datosComerciales, marginX, y);
+  
+  const comercialText = 'Comercial: ';
+  const clienteText = 'Cliente: ';
+  const refObraText = 'Ref. obra: ';
+  
+  // Calcular anchos
+  const comercialWidth = doc.getTextWidth(comercialText);
+  const espacioEntreColumnas = 40;
+  
+  // Primera columna: Comercial
+  doc.text(comercialText, marginX, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text(datos.comercial, marginX + comercialWidth, y);
+  
+  // Segunda columna: Cliente
+  const col2X = marginX + comercialWidth + doc.getTextWidth(datos.comercial) + espacioEntreColumnas;
+  doc.setFont('helvetica', 'bold');
+  doc.text(clienteText, col2X, y);
+  doc.setFont('helvetica', 'normal');
+  const clienteWidth = doc.getTextWidth(clienteText);
+  doc.text(datos.cliente, col2X + clienteWidth, y);
+  
+  // Tercera columna: Ref. obra
+  const col3X = col2X + clienteWidth + doc.getTextWidth(datos.cliente) + espacioEntreColumnas;
+  doc.setFont('helvetica', 'bold');
+  doc.text(refObraText, col3X, y);
+  doc.setFont('helvetica', 'normal');
+  const refObraWidth = doc.getTextWidth(refObraText);
+  doc.text(datos.refObra, col3X + refObraWidth, y);
+  
   y += 8;
+  
+  // Bloque de aviso si existe (Cambio 7)
+  if (datos.avisoRefuerzo && datos.avisoRefuerzo.trim()) {
+    const avisoHeight = 12;
+    doc.setFillColor(254, 249, 195); // Fondo amarillo claro
+    doc.setDrawColor(252, 211, 77); // Borde amarillo
+    doc.roundedRect(marginX, y, contentWidth, avisoHeight, 2, 2, 'FD');
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(146, 64, 14); // Texto marrón
+    
+    // Dividir texto en líneas si es necesario
+    const textoAviso = doc.splitTextToSize(datos.avisoRefuerzo, contentWidth - 8);
+    doc.text(textoAviso, marginX + 4, y + 5);
+    
+    y += avisoHeight + 5;
+  }
 
   // Recuadro azul con datos principales
   const recuadroHeight = 45;
@@ -287,6 +343,37 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   doc.setTextColor(55, 65, 81);
   
   let yDatos = y + 12;
+  
+  // Función auxiliar para renderizar línea con enunciado en negrita
+  const renderLineaNegrita = (texto) => {
+    // Dividir por los dos puntos para separar enunciado de valor
+    const partes = texto.split(':');
+    if (partes.length > 1) {
+      // Renderizar enunciados en negrita
+      let xActual = marginX + 6;
+      doc.text('• ', xActual, yDatos);
+      xActual += doc.getTextWidth('• ');
+      
+      // Recorrer cada parte del texto
+      const fragmentos = texto.substring(2).split(/(\b(?:Largo\/salida|Ancho|Altura libre|Módulos|Tipo de montaje|Nº pilares calculados|Motores|Número de lamas|Mando):\s*)/g);
+      
+      fragmentos.forEach((frag, idx) => {
+        if (frag.match(/\b(?:Largo\/salida|Ancho|Altura libre|Módulos|Tipo de montaje|Nº pilares calculados|Motores|Número de lamas|Mando):\s*/)) {
+          doc.setFont('helvetica', 'bold');
+          doc.text(frag, xActual, yDatos);
+          xActual += doc.getTextWidth(frag);
+        } else if (frag.trim()) {
+          doc.setFont('helvetica', 'normal');
+          doc.text(frag, xActual, yDatos);
+          xActual += doc.getTextWidth(frag);
+        }
+      });
+    } else {
+      doc.text(texto, marginX + 6, yDatos);
+    }
+    yDatos += 5;
+  };
+  
   const datosTexto = [
     `• Largo/salida: ${datos.salida} m · Ancho: ${datos.ancho} m · Altura libre: ${datos.altura} m`,
     `• Módulos: ${datos.modulos}`,
@@ -298,8 +385,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   ];
 
   datosTexto.forEach(texto => {
-    doc.text(texto, marginX + 6, yDatos);
-    yDatos += 5;
+    renderLineaNegrita(texto);
   });
 
   y += recuadroHeight + 8;
@@ -374,11 +460,12 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
       'IMPORTE (€)'
     ]],
     body: materiales.map(m => {
-      // Extraer solo los números, sin unidades
-      const longBarra = m.longitudBarra.replace(/[^\d.,]/g, '').replace('.', ',');
-      const numBarras = m.numBarras.replace(/[^\d]/g, '');
-      const precioUnit = m.precioUnit.replace(/[^\d.,]/g, '').replace('.', ',');
-      const importe = m.importe.replace(/[^\d.,]/g, '').replace('.', ',');
+      // IMPORTANTE: Usar longitudBarra tal cual viene del informe (sin manipular)
+      // para mantener consistencia con web y vista previa
+      const longBarra = m.longitudBarra || '—';
+      const numBarras = m.numBarras || '—';
+      const precioUnit = m.precioUnit || '0,00';
+      const importe = m.importe || '0,00 €';
       
       return [
         m.tipo,
@@ -386,7 +473,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
         m.descripcion,
         m.acabado,
         'SIN ESPECIFICAR',
-        longBarra,
+        longBarra,  // Sin procesar - tal cual viene
         numBarras,
         precioUnit,
         importe
@@ -420,7 +507,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
 
   y = doc.lastAutoTable.finalY + 8;
 
-  // ========== TOTALES ==========
+  // ========== TOTALES (ANCHO COMPLETO) ==========
   
   // Verificar si hay espacio, si no añadir página
   if (y > 250) {
@@ -428,8 +515,9 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
     y = 20;
   }
 
-  const totalesWidth = 80;
-  const totalesX = pageWidth - marginX - totalesWidth;
+  // Usar todo el ancho disponible (contentWidth)
+  const totalesWidth = contentWidth;
+  const totalesX = marginX;
 
   doc.setFillColor(249, 250, 251);
   doc.setDrawColor(229, 231, 235);
@@ -770,6 +858,13 @@ function generarCabecera(datos, numPagina, titulo) {
 }
 
 function generarBloqueDatosPresupuesto(datos) {
+  // Bloque de aviso si existe
+  const bloqueAviso = datos.avisoRefuerzo ? `
+    <div class="aviso-amarillo" style="margin-bottom: 0.75rem;">
+      ${datos.avisoRefuerzo}
+    </div>
+  ` : '';
+  
   return `
     <div class="pdf-resumen-config-ref">
       <div class="pdf-resumen-header-ref">
@@ -784,6 +879,8 @@ function generarBloqueDatosPresupuesto(datos) {
         <div><strong>Cliente:</strong> ${datos.cliente || '—'}</div>
         <div><strong>Ref. obra:</strong> ${datos.refObra || '—'}</div>
       </div>
+      
+      ${bloqueAviso}
       
       <div class="pdf-recuadro-azul">
         <h3 class="pdf-recuadro-titulo">Datos principales</h3>
@@ -959,19 +1056,31 @@ function leerDatosContexto() {
   const mandoValue = document.getElementById('mando')?.value || 'con';
   const mandoTexto = mandoValue === 'con' ? 'Con mando (1 ud. por instalación).' : 'Sin mando incluido (se definirá aparte).';
   
-  // Referencia de presupuesto
-  const codigoElement = document.getElementById('refCodeInline');
-  const codigoPresupuesto = codigoElement?.textContent?.trim() || generarCodigoRef();
+  // Referencia de presupuesto - intentar ambos elementos
+  let codigoPresupuesto = document.getElementById('refCodeInline')?.textContent?.trim();
+  if (!codigoPresupuesto) {
+    codigoPresupuesto = document.getElementById('refCode')?.textContent?.trim();
+  }
+  if (!codigoPresupuesto) {
+    codigoPresupuesto = generarCodigoRef();
+  }
   
   // Fecha
   const fecha = generarFechaFormateada();
+  
+  // Avisos (Cambio 7)
+  const avisoRefuerzo = document.getElementById('avisoRefuerzo');
+  const textoAviso = (avisoRefuerzo && avisoRefuerzo.style.display !== 'none') 
+    ? avisoRefuerzo.textContent.trim() 
+    : '';
 
   return {
     comercial, cliente, refObra,
     ancho, salida, altura, modulos,
     tipoMontajeTexto, numPilares,
     modoMotorTexto, numLamas, mandoTexto,
-    codigoPresupuesto, fecha
+    codigoPresupuesto, fecha,
+    avisoRefuerzo: textoAviso  // Nuevo campo para avisos
   };
 }
 

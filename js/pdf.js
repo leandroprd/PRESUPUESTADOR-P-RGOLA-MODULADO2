@@ -233,13 +233,11 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   }
 
   // Título y fecha (derecha)
-  // CAMBIO 7: Título en azul corporativo, negrita y tamaño 14pt para mejor jerarquía visual
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(0, 84, 166); // Azul corporativo GALISUR
   doc.text('Presupuesto Pérgola Bioclimática · Doha Sun', pageWidth - marginX, y + 8, { align: 'right' });
   
-  // CAMBIO 7: Fecha clara justo debajo con tamaño 10pt
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(75, 85, 99); // Gris oscuro para mejor legibilidad
@@ -261,64 +259,75 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
 
   y += 7;
 
-  // Ref. presupuesto en su propia línea para evitar solapamientos
+  // CORRECCIÓN: Ref. presupuesto con espacio después de los dos puntos
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(107, 114, 128);
-  doc.text(`Ref. presupuesto: `, marginX, y);
+  doc.text(`Ref. presupuesto:`, marginX, y);
   
   doc.setFont('helvetica', 'normal');
-  const refWidth = doc.getTextWidth(`Ref. presupuesto: `);
-  doc.text(`${datos.codigoPresupuesto}`, marginX + refWidth, y);
-  y += 6;
+  const refWidth = doc.getTextWidth(`Ref. presupuesto: `); // Espacio incluido para cálculo
+  doc.text(` ${datos.codigoPresupuesto}`, marginX + refWidth, y);
+  y += 7;
 
-  // CAMBIO #1: Datos comerciales en líneas separadas para evitar desbordamiento
+  // CORRECCIÓN: Datos comerciales con mejor espaciado (7mm entre líneas)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(55, 65, 81);
   
   // Comercial
   doc.setFont('helvetica', 'bold');
-  doc.text('Comercial: ', marginX, y);
+  doc.text('Comercial:', marginX, y);
   doc.setFont('helvetica', 'normal');
   const comercialLabelWidth = doc.getTextWidth('Comercial: ');
   const comercialText = doc.splitTextToSize(datos.comercial, contentWidth - comercialLabelWidth - 10);
   doc.text(comercialText, marginX + comercialLabelWidth, y);
-  y += 5;
+  y += 7; // AUMENTADO de 5 a 7
   
   // Cliente
   doc.setFont('helvetica', 'bold');
-  doc.text('Cliente: ', marginX, y);
+  doc.text('Cliente:', marginX, y);
   doc.setFont('helvetica', 'normal');
   const clienteLabelWidth = doc.getTextWidth('Cliente: ');
   const clienteText = doc.splitTextToSize(datos.cliente, contentWidth - clienteLabelWidth - 10);
   doc.text(clienteText, marginX + clienteLabelWidth, y);
-  y += 5;
+  y += 7; // AUMENTADO de 5 a 7
   
   // Ref. obra
   doc.setFont('helvetica', 'bold');
-  doc.text('Ref. obra: ', marginX, y);
+  doc.text('Ref. obra:', marginX, y);
   doc.setFont('helvetica', 'normal');
   const refObraLabelWidth = doc.getTextWidth('Ref. obra: ');
   const refObraText = doc.splitTextToSize(datos.refObra, contentWidth - refObraLabelWidth - 10);
   doc.text(refObraText, marginX + refObraLabelWidth, y);
   
-  y += 8;
+  y += 10; // Espacio antes del aviso
   
-  // Bloque de aviso si existe (Cambio 7)
+  // CORRECCIÓN: Bloque de aviso con altura dinámica y mejor control de desbordamiento
   if (datos.avisoRefuerzo && datos.avisoRefuerzo.trim()) {
-    const avisoHeight = 12;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    
+    // Calcular líneas necesarias con margen interno adecuado
+    const margenInternoAviso = 6;
+    const textoAviso = doc.splitTextToSize(datos.avisoRefuerzo, contentWidth - margenInternoAviso);
+    const numLineas = textoAviso.length;
+    const alturaLinea = 4;
+    const avisoHeight = Math.max(12, (numLineas * alturaLinea) + 6); // Mínimo 12mm, dinámico según texto
+    
+    // Dibujar recuadro amarillo
     doc.setFillColor(254, 249, 195); // Fondo amarillo claro
     doc.setDrawColor(252, 211, 77); // Borde amarillo
     doc.roundedRect(marginX, y, contentWidth, avisoHeight, 2, 2, 'FD');
     
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
     doc.setTextColor(146, 64, 14); // Texto marrón
     
-    // Dividir texto en líneas si es necesario
-    const textoAviso = doc.splitTextToSize(datos.avisoRefuerzo, contentWidth - 8);
-    doc.text(textoAviso, marginX + 4, y + 5);
+    // Renderizar texto línea por línea
+    let yTextoAviso = y + 5;
+    textoAviso.forEach(linea => {
+      doc.text(linea, marginX + 3, yTextoAviso);
+      yTextoAviso += alturaLinea;
+    });
     
     y += avisoHeight + 5;
   }
@@ -462,7 +471,6 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
       const numBarras = m.numBarras || '—';
       const precioUnit = m.precioUnit || '0,00';
       const importe = m.importe || '0,00 €';
-      // Cambio 14: Usar la referencia de acabado real
       const refAcabado = m.refAcabado || 'SIN ESPECIFICAR';
       
       return [
@@ -470,8 +478,8 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
         m.ref,
         m.descripcion,
         m.acabado,
-        refAcabado,  // Usar referencia real, no hardcodear
-        longBarra,  // Sin procesar - tal cual viene
+        refAcabado,
+        longBarra,
         numBarras,
         precioUnit,
         importe
@@ -697,13 +705,13 @@ function extraerDatosDelModal(modalContent) {
     }
   });
 
-  // CAMBIO #2: Extraer aviso amarillo si existe
+  // Extraer aviso amarillo si existe
   const avisoElement = modalContent.querySelector('.aviso-amarillo');
   let avisoTexto = (avisoElement && avisoElement.textContent) 
     ? avisoElement.textContent.trim() 
     : '';
   
-  // CAMBIO #7: Limpiar caracteres extraños que pueden venir del HTML
+  // Limpiar caracteres extraños que pueden venir del HTML
   if (avisoTexto) {
     avisoTexto = avisoTexto
       .replace(/^[&þ\s]+/, '') // Quitar caracteres raros al inicio
@@ -1087,13 +1095,13 @@ function leerDatosContexto() {
   // Fecha
   const fecha = generarFechaFormateada();
   
-  // Avisos (Cambio 7)
+  // Avisos
   const avisoRefuerzo = document.getElementById('avisoRefuerzo');
   let textoAviso = (avisoRefuerzo && avisoRefuerzo.style.display !== 'none') 
     ? avisoRefuerzo.textContent.trim() 
     : '';
   
-  // CAMBIO #7: Limpiar caracteres extraños
+  // Limpiar caracteres extraños
   if (textoAviso) {
     textoAviso = textoAviso
       .replace(/^[&þ\s]+/, '') // Quitar caracteres raros al inicio
@@ -1107,7 +1115,7 @@ function leerDatosContexto() {
     tipoMontajeTexto, numPilares,
     modoMotorTexto, numLamas, mandoTexto,
     codigoPresupuesto, fecha,
-    avisoRefuerzo: textoAviso  // Nuevo campo para avisos
+    avisoRefuerzo: textoAviso
   };
 }
 
@@ -1126,7 +1134,6 @@ function generarNombreArchivo(tipo) {
     codigo = generarTimestamp();
   }
 
-  // CAMBIO #4: Nuevo formato de nombre de archivo
   let nombreDocumento = 'Informe de Material';
   if (tipo === 'corte') nombreDocumento = 'Hoja de Corte';
   if (tipo === 'peso') nombreDocumento = 'Peso y Perímetros';

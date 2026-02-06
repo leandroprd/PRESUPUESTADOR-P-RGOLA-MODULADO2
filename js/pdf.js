@@ -417,146 +417,166 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
     }
   }
 
-  // ========== TABLA DE MATERIALES ==========
+// ========== TABLA DE MATERIALES ==========
   
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.setTextColor(31, 41, 55);
-  doc.text('Informe de material', marginX, y);
-  y += 6;
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(12);
+doc.setTextColor(31, 41, 55);
+doc.text('Informe de material', marginX, y);
+y += 6;
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(107, 114, 128);
-  doc.text('• Acabado general: blanco', marginX, y);
-  y += 2;
-
-  // Tabla con autotable - headers con unidades
-  doc.autoTable({
-    startY: y,
-    head: [[
-      'TIPO',
-      'REF.',
-      'DESCRIPCIÓN',
-      'ACABADO',
-      'REF. ACABADO',
-      'LONG. BARRA (m)',
-      'Nº BARRAS / UDS',
-      'PRECIO UNIT. (€)',
-      'IMPORTE (€)'
-    ]],
-    body: materiales.map(m => {
-      // IMPORTANTE: Usar longitudBarra tal cual viene del informe (sin manipular)
-      // para mantener consistencia con web y vista previa
-      const longBarra = m.longitudBarra || '—';
-      const numBarras = m.numBarras || '—';
-      const precioUnit = m.precioUnit || '0,00';
-      const importe = m.importe || '0,00 €';
-      const refAcabado = m.refAcabado || 'SIN ESPECIFICAR';
-      
-      return [
-        m.tipo,
-        m.ref,
-        m.descripcion,
-        m.acabado,
-        refAcabado,
-        longBarra,
-        numBarras,
-        precioUnit,
-        importe
-      ];
-    }),
-    styles: {
-      fontSize: 8,
-      cellPadding: 1.5,
-      lineColor: [229, 231, 235],
-      lineWidth: 0.1
-    },
-    headStyles: {
-      fillColor: [243, 244, 246],
-      textColor: [31, 41, 55],
-      fontStyle: 'bold',
-      lineColor: [209, 213, 219],
-      lineWidth: 0.1
-    },
-    alternateRowStyles: {
-      fillColor: [250, 250, 250]
-    },
-    margin: { left: marginX, right: marginX },
-    tableWidth: contentWidth,
-    columnStyles: {
-      5: { halign: 'right' }, // Long. barra
-      6: { halign: 'right' }, // Nº barras
-      7: { halign: 'right' }, // Precio unit.
-      8: { halign: 'right' }  // Importe
-    }
-  });
-
-  y = doc.lastAutoTable.finalY + 8;
-
-  // ========== TOTALES (ANCHO COMPLETO) ==========
+// Tabla con autotable - CONFIGURACIÓN MEJORADA
+doc.autoTable({
+  startY: y,
+  head: [[
+    'TIPO',
+    'REF.',
+    'DESCRIPCIÓN',
+    'ACABADO',
+    'REF. ACABADO',
+    'LONG. BARRA (m)',
+    'Nº BARRAS / UDS',
+    'PRECIO UNIT. (€)',
+    'IMPORTE (€)'
+  ]],
+  body: materiales.map(m => {
+    // ✅ Quitar la unidad (m) de la longitud de barra
+    const longBarra = m.longitudBarra ? String(m.longitudBarra).replace(/\s*m$/i, '') : '—';
+    const numBarras = m.numBarras || '—';
+    const precioUnit = m.precioUnit || '0,00';
+    const importe = m.importe || '0,00 €';
+    const refAcabado = m.refAcabado || 'SIN ESPECIFICAR';
+    
+    return [
+      m.tipo,
+      m.ref,
+      m.descripcion,
+      m.acabado,
+      refAcabado,
+      longBarra,
+      numBarras,
+      precioUnit,
+      importe
+    ];
+  }),
+  styles: {
+    fontSize: 7,
+    cellPadding: 1,
+    lineColor: [229, 231, 235],
+    lineWidth: 0.1,
+    valign: 'middle',
+    overflow: 'linebreak',
+    cellWidth: 'wrap'
+  },
+  headStyles: {
+    fillColor: [243, 244, 246],
+    textColor: [31, 41, 55],
+    fontStyle: 'bold',
+    fontSize: 7,
+    lineColor: [209, 213, 219],
+    lineWidth: 0.1,
+    halign: 'center',
+    valign: 'middle'
+  },
+  alternateRowStyles: {
+    fillColor: [250, 250, 250]
+  },
+  margin: { left: marginX, right: marginX },
+  tableWidth: contentWidth,
   
-  // Verificar si hay espacio, si no añadir página
-  if (y > 250) {
-    doc.addPage();
-    y = 20;
-  }
-
-  // Usar todo el ancho disponible (contentWidth)
-  const totalesWidth = contentWidth;
-  const totalesX = marginX;
-
-  doc.setFillColor(249, 250, 251);
-  doc.setDrawColor(229, 231, 235);
-  doc.roundedRect(totalesX, y, totalesWidth, 30, 3, 3, 'FD');
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(31, 41, 55);
-  doc.text('Resumen económico', totalesX + 4, y + 6);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(107, 114, 128);
-
-  let yTotal = y + 12;
-  doc.text('Total perfiles', totalesX + 4, yTotal);
-  doc.setTextColor(31, 41, 55);
-  doc.setFont('helvetica', 'bold');
-  doc.text(totales.perfiles, totalesX + totalesWidth - 4, yTotal, { align: 'right' });
-
-  yTotal += 5;
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(107, 114, 128);
-  doc.text('Total accesorios', totalesX + 4, yTotal);
-  doc.setTextColor(31, 41, 55);
-  doc.setFont('helvetica', 'bold');
-  doc.text(totales.accesorios, totalesX + totalesWidth - 4, yTotal, { align: 'right' });
-
-  yTotal += 7;
-  doc.setDrawColor(3, 105, 161);
-  doc.line(totalesX + 4, yTotal - 2, totalesX + totalesWidth - 4, yTotal - 2);
-  doc.line(totalesX + 4, yTotal + 4, totalesX + totalesWidth - 4, yTotal + 4);
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(3, 105, 161);
-  doc.text('Total materiales', totalesX + 4, yTotal + 2);
-  doc.text(totales.total, totalesX + totalesWidth - 4, yTotal + 2, { align: 'right' });
-
-  // ========== PIE DE PÁGINA ==========
+  rowPageBreak: 'avoid',
   
-  const numPaginas = doc.internal.pages.length - 1;
-  for (let i = 1; i <= numPaginas; i++) {
-    doc.setPage(i);
+  // ✅ Anchos de columna optimizados
+  columnStyles: {
+    0: { cellWidth: 17, halign: 'left' },    // TIPO - Aumentado para "accesorio"
+    1: { cellWidth: 12, halign: 'center' },  // REF.
+    2: { cellWidth: 38, halign: 'left' },    // DESCRIPCIÓN
+    3: { cellWidth: 16, halign: 'center' },  // ACABADO
+    4: { cellWidth: 22, halign: 'center' },  // REF. ACABADO
+    5: { cellWidth: 18, halign: 'center' },  // LONG. BARRA - Centrado
+    6: { cellWidth: 18, halign: 'center' },  // ✅ Nº BARRAS - Centrado
+    7: { cellWidth: 18, halign: 'center' },  // PRECIO UNIT. - Centrado
+    8: { cellWidth: 15, halign: 'center' }   // IMPORTE - Centrado
+  },
+  
+  didDrawPage: (data) => {
+    const pageCount = doc.internal.pages.length - 1;
+    const pageNumber = doc.internal.getCurrentPageInfo().pageNumber;
+    
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(107, 114, 128);
-    
-    doc.text(`Página ${i}`, marginX, 287);
+    doc.text(`Página ${pageNumber}`, marginX, 287);
     doc.setFont('helvetica', 'italic');
     doc.text('ALUMINIOS GALISUR · Pérgola Bioclimática Doha Sun', pageWidth - marginX, 287, { align: 'right' });
   }
+});
+
+y = doc.lastAutoTable.finalY + 8;
+
+// ========== TOTALES (ANCHO COMPLETO) ==========
+
+const espacioRestante = 297 - y;
+if (espacioRestante < 45) {
+  console.log(`⚠️ Espacio insuficiente (${espacioRestante.toFixed(1)}mm), añadiendo nueva página para totales`);
+  doc.addPage();
+  y = 20;
+}
+
+const totalesWidth = contentWidth;
+const totalesX = marginX;
+
+doc.setFillColor(249, 250, 251);
+doc.setDrawColor(229, 231, 235);
+doc.roundedRect(totalesX, y, totalesWidth, 30, 3, 3, 'FD');
+
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(11);
+doc.setTextColor(31, 41, 55);
+doc.text('Resumen económico', totalesX + 4, y + 6);
+
+doc.setFont('helvetica', 'normal');
+doc.setFontSize(9);
+doc.setTextColor(107, 114, 128);
+
+let yTotal = y + 12;
+doc.text('Total perfiles', totalesX + 4, yTotal);
+doc.setTextColor(31, 41, 55);
+doc.setFont('helvetica', 'bold');
+doc.text(totales.perfiles, totalesX + totalesWidth - 4, yTotal, { align: 'right' });
+
+yTotal += 5;
+doc.setFont('helvetica', 'normal');
+doc.setTextColor(107, 114, 128);
+doc.text('Total accesorios', totalesX + 4, yTotal);
+doc.setTextColor(31, 41, 55);
+doc.setFont('helvetica', 'bold');
+doc.text(totales.accesorios, totalesX + totalesWidth - 4, yTotal, { align: 'right' });
+
+yTotal += 7;
+doc.setDrawColor(3, 105, 161);
+doc.line(totalesX + 4, yTotal - 2, totalesX + totalesWidth - 4, yTotal - 2);
+doc.line(totalesX + 4, yTotal + 4, totalesX + totalesWidth - 4, yTotal + 4);
+
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(11);
+doc.setTextColor(3, 105, 161);
+doc.text('Total materiales', totalesX + 4, yTotal + 2);
+doc.text(totales.total, totalesX + totalesWidth - 4, yTotal + 2, { align: 'right' });
+
+// ========== PIE DE PÁGINA ==========
+
+const numPaginas = doc.internal.pages.length - 1;
+for (let i = 1; i <= numPaginas; i++) {
+  doc.setPage(i);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(107, 114, 128);
+  
+  doc.text(`Página ${i}`, marginX, 287);
+  doc.setFont('helvetica', 'italic');
+  doc.text('ALUMINIOS GALISUR · Pérgola Bioclimática Doha Sun', pageWidth - marginX, 287, { align: 'right' });
+}
 }
 
 // ============================================================================

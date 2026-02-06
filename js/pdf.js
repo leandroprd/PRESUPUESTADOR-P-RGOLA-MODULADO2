@@ -385,7 +385,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
     `• Tipo de montaje: ${datos.tipoMontaje}`,
     `• Nº pilares calculados: ${datos.numPilares}`,
     `• Motores: ${datos.motores}`,
-    `• Número de lamas (tabla): ${datos.numLamas}`,
+    `• Número de lamas: ${datos.numLamas}`,
     `• Mando: ${datos.mando}`
   ];
 
@@ -919,7 +919,7 @@ function generarBloqueDatosPresupuesto(datos) {
           <li><strong>Tipo de montaje:</strong> ${datos.tipoMontajeTexto}</li>
           <li><strong>Nº pilares calculados:</strong> ${datos.numPilares}</li>
           <li><strong>Motores:</strong> ${datos.modoMotorTexto}</li>
-          <li><strong>Número de lamas (tabla):</strong> ${datos.numLamas}</li>
+          <li><strong>Número de lamas:</strong> ${datos.numLamas}</li>
           <li><strong>Mando:</strong> ${datos.mandoTexto}</li>
         </ul>
       </div>

@@ -260,7 +260,7 @@ async function generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen) {
   y += 7;
 
   // CORRECCIÓN: Ref. presupuesto con espacio después de los dos puntos
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('helvetica');
   doc.setFontSize(9);
   doc.setTextColor(107, 114, 128);
   doc.text('Ref. presupuesto: ', marginX, y);

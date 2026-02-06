@@ -920,6 +920,7 @@ function generarBloqueDatosPresupuesto(datos) {
           <li><strong>Nº pilares calculados:</strong> ${datos.numPilares}</li>
           <li><strong>Motores:</strong> ${datos.modoMotorTexto}</li>
           <li><strong>Número de lamas:</strong> ${datos.numLamas}</li>
+          <li><strong>Prueba:</strong> </li>
           <li><strong>Mando:</strong> ${datos.mandoTexto}</li>
         </ul>
       </div>

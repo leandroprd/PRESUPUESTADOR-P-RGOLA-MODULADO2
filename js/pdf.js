@@ -195,14 +195,18 @@ export async function descargarPDFDesdeModal() {
       return;
     }
     
-    const materiales = extraerMaterialesDelModal(modalContent);
-    const totales = extraerTotalesDelModal(modalContent);
-    
-    // Convertir SVG a imagen
-    const svgImagen = await convertirSVGaImagen(modalContent);
-
-    // Generar PDF
-    await generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen);
+    // Generar PDF según el tipo de documento
+    if (tipoDocumentoActual === 'peso') {
+      await generarPDFPeso(doc, datos);
+    } else if (tipoDocumentoActual === 'corte') {
+      await generarPDFCorte(doc, datos, modalContent);
+    } else {
+      // Material (presupuesto) - código original
+      const materiales = extraerMaterialesDelModal(modalContent);
+      const totales = extraerTotalesDelModal(modalContent);
+      const svgImagen = await convertirSVGaImagen(modalContent);
+      await generarPDFconJsPDF(doc, datos, materiales, totales, svgImagen);
+    }
 
     // Descargar
     const nombreArchivo = generarNombreArchivo(tipoDocumentoActual);
@@ -580,6 +584,453 @@ for (let i = 1; i <= numPaginas; i++) {
 }
 
 // ============================================================================
+// GENERACIÓN PDF - PESOS Y PERÍMETROS
+// ============================================================================
+
+async function generarPDFPeso(doc, datos) {
+  let y = 15;
+  const marginX = 20;
+  const pageWidth = 210;
+  const contentWidth = pageWidth - (marginX * 2);
+
+  // ========== CABECERA (igual que presupuesto pero con título diferente) ==========
+  
+  // Logo
+  if (logoBase64) {
+    try {
+      doc.addImage(logoBase64, 'PNG', marginX, y, 30, 15);
+    } catch (e) {
+      console.warn('⚠️ Error al añadir logo:', e);
+    }
+  }
+
+  // Título y fecha
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(0, 84, 166);
+  doc.text('Pesos y perímetros Pérgola Bioclimática · Doha Sun', pageWidth - marginX, y + 8, { align: 'right' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(75, 85, 99);
+  doc.text(`Fecha: ${datos.fecha || ''}`, pageWidth - marginX, y + 14, { align: 'right' });
+
+  y += 20;
+
+  // Línea divisoria
+  doc.setDrawColor(209, 213, 219);
+  doc.line(marginX, y, pageWidth - marginX, y);
+  y += 8;
+
+  // ========== RESUMEN DE CONFIGURACIÓN (simplificado) ==========
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(31, 41, 55);
+  doc.text('Resumen de configuración', marginX, y);
+
+  y += 7;
+
+  // Ref. presupuesto
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(107, 114, 128);
+  doc.text(`Ref. presupuesto: ${datos.codigoPresupuesto}`, marginX, y);
+  y += 8;
+
+  // Datos comerciales en horizontal
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(55, 65, 81);
+
+  const columnaWidth = contentWidth / 3;
+  const espacioEtiqueta = 3;
+
+  // Comercial
+  doc.setFont('helvetica', 'bold');
+  doc.text('Comercial:', marginX, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text(datos.comercial, marginX + doc.getTextWidth('Comercial:') + espacioEtiqueta, y);
+
+  // Cliente
+  const xColumna2 = marginX + columnaWidth;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Cliente:', xColumna2, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text(datos.cliente, xColumna2 + doc.getTextWidth('Cliente:') + espacioEtiqueta, y);
+
+  // Ref. obra
+  const xColumna3 = marginX + (columnaWidth * 2);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Ref. obra:', xColumna3, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text(datos.refObra, xColumna3 + doc.getTextWidth('Ref. obra:') + espacioEtiqueta, y);
+
+  y += 5;
+
+  // Recuadro azul con datos simplificados
+  const recuadroHeight = 25;
+  doc.setFillColor(239, 246, 255);
+  doc.setDrawColor(191, 219, 254);
+  doc.roundedRect(marginX, y, contentWidth, recuadroHeight, 2, 2, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(30, 64, 175);
+  doc.text('Información de la configuración', marginX + 4, y + 6);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(55, 65, 81);
+
+  let yDatos = y + 12;
+
+  doc.text(`• Largo/salida: ${datos.salida} m · Ancho: ${datos.ancho} m · Altura libre: ${datos.altura} m`, marginX + 6, yDatos);
+  yDatos += 5;
+  doc.text(`• Módulos: ${datos.modulos} · Tipo de montaje: ${datos.tipoMontaje}`, marginX + 6, yDatos);
+
+  y += recuadroHeight + 5;
+
+  // Obtener datos del informe
+  const informe = obtenerUltimoInforme();
+  if (!informe || !informe.detallePesoPerimetro) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('No hay datos de pesos y perímetros disponibles.', marginX, y);
+    return;
+  }
+
+  // ========== TABLA DE PESOS Y PERÍMETROS ==========
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(31, 41, 55);
+  doc.text('Pesos y perímetros por perfil', marginX, y);
+  y += 6;
+
+  // Tabla con autotable
+  const datosPeso = informe.detallePesoPerimetro.map(item => [
+    item.ref || '—',
+    item.descripcion || '—',
+    (item.pesoTotal || 0).toFixed(2),
+    (item.perimetroTotal || 0).toFixed(2)
+  ]);
+
+  doc.autoTable({
+    startY: y,
+    head: [['REFERENCIA', 'DESCRIPCIÓN', 'PESO TOTAL (kg)', 'PERÍMETRO (mm)']],
+    body: datosPeso,
+    foot: [[
+      { content: 'TOTALES:', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold' } },
+      { content: informe.totales.pesoTotal.toFixed(2), styles: { fontStyle: 'bold', fillColor: [239, 246, 255] } },
+      { content: informe.totales.perimetroTotal.toFixed(2), styles: { fontStyle: 'bold', fillColor: [239, 246, 255] } }
+    ]],
+    styles: {
+      fontSize: 8,
+      cellPadding: 1.5,
+      lineColor: [229, 231, 235],
+      lineWidth: 0.1,
+      valign: 'middle'
+    },
+    headStyles: {
+      fillColor: [243, 244, 246],
+      textColor: [31, 41, 55],
+      fontStyle: 'bold',
+      fontSize: 8,
+      lineColor: [209, 213, 219],
+      halign: 'center'
+    },
+    footStyles: {
+      fillColor: [239, 246, 255],
+      textColor: [30, 64, 175],
+      fontStyle: 'bold',
+      lineColor: [191, 219, 254]
+    },
+    alternateRowStyles: {
+      fillColor: [250, 250, 250]
+    },
+    columnStyles: {
+      0: { cellWidth: 25, halign: 'center' },
+      1: { cellWidth: 80, halign: 'left' },
+      2: { cellWidth: 30, halign: 'center' },
+      3: { cellWidth: 35, halign: 'center' }
+    },
+    margin: { left: marginX, right: marginX },
+    didDrawPage: (data) => {
+      const pageNumber = doc.internal.getCurrentPageInfo().pageNumber;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(107, 114, 128);
+      doc.text(`Página ${pageNumber}`, marginX, 287);
+      doc.setFont('helvetica', 'italic');
+      doc.text('ALUMINIOS GALISUR · Pérgola Bioclimática Doha Sun', pageWidth - marginX, 287, { align: 'right' });
+    }
+  });
+
+  // ========== PIE DE PÁGINA ==========
+  const numPaginas = doc.internal.pages.length - 1;
+  for (let i = 1; i <= numPaginas; i++) {
+    doc.setPage(i);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(107, 114, 128);
+    doc.text(`Página ${i}`, marginX, 287);
+    doc.setFont('helvetica', 'italic');
+    doc.text('ALUMINIOS GALISUR · Pérgola Bioclimática Doha Sun', pageWidth - marginX, 287, { align: 'right' });
+  }
+}
+
+// ============================================================================
+// GENERACIÓN PDF - HOJA DE CORTE
+// ============================================================================
+
+async function generarPDFCorte(doc, datos, modalContent) {
+  let y = 15;
+  const marginX = 20;
+  const pageWidth = 210;
+  const contentWidth = pageWidth - (marginX * 2);
+
+  // ========== CABECERA ==========
+  
+  // Logo
+  if (logoBase64) {
+    try {
+      doc.addImage(logoBase64, 'PNG', marginX, y, 30, 15);
+    } catch (e) {
+      console.warn('⚠️ Error al añadir logo:', e);
+    }
+  }
+
+  // Título y fecha
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(0, 84, 166);
+  doc.text('Hoja de corte Pérgola Bioclimática · Doha Sun', pageWidth - marginX, y + 8, { align: 'right' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(75, 85, 99);
+  doc.text(`Fecha: ${datos.fecha || ''}`, pageWidth - marginX, y + 14, { align: 'right' });
+
+  y += 20;
+
+  // Línea divisoria
+  doc.setDrawColor(209, 213, 219);
+  doc.line(marginX, y, pageWidth - marginX, y);
+  y += 8;
+
+  // ========== RESUMEN DE CONFIGURACIÓN (simplificado) ==========
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(31, 41, 55);
+  doc.text('Resumen de configuración', marginX, y);
+
+  y += 7;
+
+  // Ref. presupuesto
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(107, 114, 128);
+  doc.text(`Ref. presupuesto: ${datos.codigoPresupuesto}`, marginX, y);
+  y += 8;
+
+  // Datos comerciales
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(55, 65, 81);
+
+  const columnaWidth = contentWidth / 3;
+  const espacioEtiqueta = 3;
+
+  doc.setFont('helvetica', 'bold');
+  doc.text('Comercial:', marginX, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text(datos.comercial, marginX + doc.getTextWidth('Comercial:') + espacioEtiqueta, y);
+
+  const xColumna2 = marginX + columnaWidth;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Cliente:', xColumna2, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text(datos.cliente, xColumna2 + doc.getTextWidth('Cliente:') + espacioEtiqueta, y);
+
+  const xColumna3 = marginX + (columnaWidth * 2);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Ref. obra:', xColumna3, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text(datos.refObra, xColumna3 + doc.getTextWidth('Ref. obra:') + espacioEtiqueta, y);
+
+  y += 5;
+
+  // Recuadro azul simplificado
+  const recuadroHeight = 25;
+  doc.setFillColor(239, 246, 255);
+  doc.setDrawColor(191, 219, 254);
+  doc.roundedRect(marginX, y, contentWidth, recuadroHeight, 2, 2, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(30, 64, 175);
+  doc.text('Información de la configuración', marginX + 4, y + 6);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(55, 65, 81);
+
+  let yDatos = y + 12;
+  doc.text(`• Largo/salida: ${datos.salida} m · Ancho: ${datos.ancho} m · Altura libre: ${datos.altura} m`, marginX + 6, yDatos);
+  yDatos += 5;
+  doc.text(`• Módulos: ${datos.modulos} · Tipo de montaje: ${datos.tipoMontaje}`, marginX + 6, yDatos);
+
+  y += recuadroHeight + 5;
+
+  // ========== ESQUEMA SVG ==========
+  const svgImagen = await convertirSVGaImagen(modalContent);
+  
+  if (svgImagen) {
+    try {
+      const img = new Image();
+      img.src = svgImagen;
+      
+      await new Promise((resolve) => {
+        img.onload = () => {
+          const proporcion = img.width / img.height;
+          let altoEnPDF = 70;
+          let anchoEnPDF = altoEnPDF * proporcion;
+          
+          if (anchoEnPDF > contentWidth) {
+            anchoEnPDF = contentWidth;
+            altoEnPDF = anchoEnPDF / proporcion;
+          }
+          
+          const xCentrado = marginX + (contentWidth - anchoEnPDF) / 2;
+          doc.addImage(svgImagen, 'PNG', xCentrado, y, anchoEnPDF, altoEnPDF);
+          y += altoEnPDF + 8;
+          resolve();
+        };
+        img.onerror = () => {
+          y += 5;
+          resolve();
+        };
+      });
+    } catch (e) {
+      console.warn('⚠️ Error al añadir SVG:', e);
+      y += 5;
+    }
+  }
+
+  // Obtener datos del informe
+  const informe = obtenerUltimoInforme();
+  if (!informe || !informe.detalleHojaCorte) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('No hay datos de hoja de corte disponibles.', marginX, y);
+    return;
+  }
+
+  // ========== HOJAS DE CORTE POR PERFIL ==========
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(31, 41, 55);
+  doc.text('Hojas de corte por perfil', marginX, y);
+  y += 6;
+
+  informe.detalleHojaCorte.forEach((perfil, index) => {
+    // Verificar espacio disponible
+    if (y > 240) {
+      doc.addPage();
+      y = 20;
+    }
+
+    // Encabezado del perfil
+    doc.setFillColor(239, 246, 255);
+    doc.roundedRect(marginX, y, contentWidth, 10, 2, 2, 'F');
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(30, 64, 175);
+    doc.text(`${perfil.ref} - ${perfil.descripcion}`, marginX + 2, y + 4);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(107, 114, 128);
+    doc.text(`Acabado: ${perfil.acabado} | Desperdicio total: ${(perfil.desperdicioTotal / 1000).toFixed(3)} m`, marginX + 2, y + 8);
+    
+    y += 12;
+
+    // Agrupar barras por longitud
+    const barrasPorLongitud = {};
+    perfil.barrasDetalle.forEach(barra => {
+      if (!barrasPorLongitud[barra.longitud]) {
+        barrasPorLongitud[barra.longitud] = [];
+      }
+      barrasPorLongitud[barra.longitud].push(barra);
+    });
+
+    // Preparar datos para la tabla
+    const datosBarras = Object.entries(barrasPorLongitud).map(([longitud, barras]) => {
+      const piezasStr = barras[0].piezas.map(p => p.toFixed(0)).join(' + ');
+      const desperdicioPromedio = barras.reduce((sum, b) => sum + b.desperdicio, 0) / barras.length;
+      
+      return [
+        longitud,
+        barras.length.toString(),
+        piezasStr,
+        desperdicioPromedio.toFixed(1)
+      ];
+    });
+
+    // Tabla de barras
+    doc.autoTable({
+      startY: y,
+      head: [['BARRA (mm)', 'CANTIDAD', 'PIEZAS CORTADAS (mm)', 'DESPERDICIO (mm)']],
+      body: datosBarras,
+      styles: {
+        fontSize: 7,
+        cellPadding: 1,
+        lineColor: [229, 231, 235],
+        lineWidth: 0.1
+      },
+      headStyles: {
+        fillColor: [243, 244, 246],
+        textColor: [31, 41, 55],
+        fontStyle: 'bold',
+        fontSize: 7,
+        halign: 'center'
+      },
+      alternateRowStyles: {
+        fillColor: [250, 250, 250]
+      },
+      columnStyles: {
+        0: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
+        1: { cellWidth: 20, halign: 'center', fontStyle: 'bold' },
+        2: { cellWidth: 90, halign: 'left', fontSize: 6 },
+        3: { cellWidth: 35, halign: 'center' }
+      },
+      margin: { left: marginX, right: marginX },
+      tableWidth: contentWidth
+    });
+
+    y = doc.lastAutoTable.finalY + 8;
+  });
+
+  // ========== PIE DE PÁGINA ==========
+  const numPaginas = doc.internal.pages.length - 1;
+  for (let i = 1; i <= numPaginas; i++) {
+    doc.setPage(i);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(107, 114, 128);
+    doc.text(`Página ${i}`, marginX, 287);
+    doc.setFont('helvetica', 'italic');
+    doc.text('ALUMINIOS GALISUR · Pérgola Bioclimática Doha Sun', pageWidth - marginX, 287, { align: 'right' });
+  }
+}
+
+// ============================================================================
 // CONVERSIÓN SVG A IMAGEN
 // ============================================================================
 
@@ -885,6 +1336,8 @@ function generarPresupuestoPaginado(informe, totales, datos) {
 }
 
 function generarCabecera(datos, numPagina, titulo) {
+  const tituloFinal = titulo || 'Presupuesto Pérgola Bioclimática · Doha Sun';
+  
   const logoHTML = logoBase64 
     ? `<img src="${logoBase64}" class="pdf-logo-ref" alt="Logo Galisur" />`
     : '<div class="pdf-logo-ref-placeholder"></div>';
@@ -902,7 +1355,7 @@ function generarCabecera(datos, numPagina, titulo) {
         </div>
         <div class="pdf-header-ref-right">
           <div style="font-weight: 700; font-size: 12pt; color: #0054a6; text-align: right; margin-bottom: 2mm;">
-            Presupuesto Pérgola Bioclimática · Doha Sun
+            ${tituloFinal}
           </div>
           <div class="pdf-fecha-header" style="font-size: 10pt; color: #4b5563; text-align: right;">
             ${fechaFormateada}
@@ -1059,11 +1512,204 @@ function generarPie(numPagina) {
 
 // Funciones simplificadas para otros documentos
 function generarHojaCortePaginada(informe, datos) {
-  return `<div class="pdf-documento-multipagina"><div class="pdf-page-a4"><p>Hoja de corte - En desarrollo</p></div></div>`;
+  if (!informe || !informe.detalleHojaCorte) {
+    return `
+      <div class="pdf-documento-multipagina">
+        <div class="pdf-page-a4">
+          ${generarCabecera(datos, 1, 'HOJA DE CORTE PÉRGOLA BIOCLIMÁTICA · DOHA SUN')}
+          <section class="pdf-content-a4">
+            <p style="text-align: center; color: #666; margin-top: 3rem;">No hay datos de hoja de corte disponibles.</p>
+          </section>
+          ${generarPie(1)}
+        </div>
+      </div>
+    `;
+  }
+
+  const bloqueDatos = `
+    <div class="pdf-resumen-config-ref">
+      <div class="pdf-resumen-header-ref">
+        <div>
+          <h2 class="pdf-titulo-seccion-ref">Resumen de configuración</h2>
+          <div class="pdf-ref-presupuesto">Ref. presupuesto: ${datos.codigoPresupuesto}</div>
+        </div>
+      </div>
+      
+      <div class="pdf-datos-comerciales-ref">
+        <div><strong>Comercial:</strong> ${datos.comercial || '—'}</div>
+        <div><strong>Cliente:</strong> ${datos.cliente || '—'}</div>
+        <div><strong>Ref. obra:</strong> ${datos.refObra || '—'}</div>
+      </div>
+      
+      <div class="pdf-recuadro-azul">
+        <h3 class="pdf-recuadro-titulo">Información de la configuración</h3>
+        <ul class="pdf-lista-datos">
+          <li><strong>Largo/salida:</strong> ${datos.salida.toFixed(2)} m · <strong>Ancho:</strong> ${datos.ancho.toFixed(2)} m · <strong>Altura libre:</strong> ${datos.altura.toFixed(2)} m</li>
+          <li><strong>Módulos:</strong> ${datos.modulos} · <strong>Tipo de montaje:</strong> ${datos.tipoMontajeTexto}</li>
+        </ul>
+      </div>
+    </div>
+  `;
+
+  const bloqueEsquema = generarBloqueEsquema();
+
+  const bloquesPerfiles = informe.detalleHojaCorte.map(perfil => {
+    // Agrupar barras por longitud
+    const barrasPorLongitud = {};
+    perfil.barrasDetalle.forEach(barra => {
+      if (!barrasPorLongitud[barra.longitud]) {
+        barrasPorLongitud[barra.longitud] = [];
+      }
+      barrasPorLongitud[barra.longitud].push(barra);
+    });
+
+    const filasBarras = Object.entries(barrasPorLongitud).map(([longitud, barras], index) => {
+      const piezasStr = barras[0].piezas.map(p => p.toFixed(0)).join(' + ');
+      const desperdicioPromedio = barras.reduce((sum, b) => sum + b.desperdicio, 0) / barras.length;
+      
+      return `
+        <tr class="${index % 2 === 0 ? 'pdf-fila-par' : ''}">
+          <td style="font-weight: 600; font-family: monospace; text-align: center;">${longitud}</td>
+          <td style="text-align: center; font-weight: 600;">${barras.length}</td>
+          <td style="font-family: monospace; font-size: 0.8rem;">${piezasStr}</td>
+          <td style="text-align: center; font-family: monospace;">${desperdicioPromedio.toFixed(1)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <div style="margin-bottom: 2rem; page-break-inside: avoid;">
+        <div style="margin-bottom: 1rem; padding: 0.75rem; background-color: var(--blue-soft); border-radius: 0.5rem; border-left: 4px solid var(--blue-main);">
+          <div style="font-weight: 700; font-size: 1.05rem; color: var(--blue-dark); margin-bottom: 0.25rem;">
+            ${perfil.ref} - ${perfil.descripcion}
+          </div>
+          <div style="font-size: 0.9rem; color: var(--text-soft);">
+            Acabado: ${perfil.acabado} | Desperdicio total: ${(perfil.desperdicioTotal / 1000).toFixed(3)} m
+          </div>
+        </div>
+        <table class="pdf-tabla-materiales" style="width: 100%; font-size: 0.9rem;">
+          <thead>
+            <tr>
+              <th style="width: 15%;">BARRA (mm)</th>
+              <th style="width: 10%;">CANTIDAD</th>
+              <th style="width: 55%;">PIEZAS CORTADAS (mm)</th>
+              <th style="width: 20%;">DESPERDICIO (mm)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filasBarras}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }).join('');
+
+  const htmlCompleto = `
+    <div class="pdf-page-a4">
+      ${generarCabecera(datos, 1, 'HOJA DE CORTE PÉRGOLA BIOCLIMÁTICA · DOHA SUN')}
+      
+      <section class="pdf-content-a4">
+        ${bloqueDatos}
+        ${bloqueEsquema}
+        
+        <div class="pdf-bloque-tabla">
+          <h2 class="pdf-titulo-tabla-ref">Hojas de corte por perfil</h2>
+          ${bloquesPerfiles}
+        </div>
+      </section>
+      
+      ${generarPie(1)}
+    </div>
+  `;
+
+  return `<div class="pdf-documento-multipagina">${htmlCompleto}</div>`;
 }
 
 function generarPesoPerimetrosPaginado(informe, totales, datos) {
-  return `<div class="pdf-documento-multipagina"><div class="pdf-page-a4"><p>Peso y perímetros - En desarrollo</p></div></div>`;
+  if (!informe || !informe.detallePesoPerimetro) {
+    return `
+      <div class="pdf-documento-multipagina">
+        <div class="pdf-page-a4">
+          ${generarCabecera(datos, 1, 'PESOS Y PERÍMETROS PÉRGOLA BIOCLIMÁTICA · DOHA SUN')}
+          <section class="pdf-content-a4">
+            <p style="text-align: center; color: #666; margin-top: 3rem;">No hay datos de pesos y perímetros disponibles.</p>
+          </section>
+          ${generarPie(1)}
+        </div>
+      </div>
+    `;
+  }
+
+  const filasPeso = informe.detallePesoPerimetro.map((item, index) => `
+    <tr class="${index % 2 === 0 ? 'pdf-fila-par' : ''}">
+      <td style="font-family: monospace; text-align: center;">${item.ref}</td>
+      <td>${item.descripcion}</td>
+      <td style="text-align: center; font-weight: 600;">${item.pesoTotal.toFixed(2)} kg</td>
+      <td style="text-align: center; font-weight: 600;">${item.perimetroTotal.toFixed(2)} mm</td>
+    </tr>
+  `).join('');
+
+  const bloqueDatos = `
+    <div class="pdf-resumen-config-ref">
+      <div class="pdf-resumen-header-ref">
+        <div>
+          <h2 class="pdf-titulo-seccion-ref">Resumen de configuración</h2>
+          <div class="pdf-ref-presupuesto">Ref. presupuesto: ${datos.codigoPresupuesto}</div>
+        </div>
+      </div>
+      
+      <div class="pdf-datos-comerciales-ref">
+        <div><strong>Comercial:</strong> ${datos.comercial || '—'}</div>
+        <div><strong>Cliente:</strong> ${datos.cliente || '—'}</div>
+        <div><strong>Ref. obra:</strong> ${datos.refObra || '—'}</div>
+      </div>
+      
+      <div class="pdf-recuadro-azul">
+        <h3 class="pdf-recuadro-titulo">Información de la configuración</h3>
+        <ul class="pdf-lista-datos">
+          <li><strong>Largo/salida:</strong> ${datos.salida.toFixed(2)} m · <strong>Ancho:</strong> ${datos.ancho.toFixed(2)} m · <strong>Altura libre:</strong> ${datos.altura.toFixed(2)} m</li>
+          <li><strong>Módulos:</strong> ${datos.modulos} · <strong>Tipo de montaje:</strong> ${datos.tipoMontajeTexto}</li>
+        </ul>
+      </div>
+    </div>
+  `;
+
+  const htmlCompleto = `
+    <div class="pdf-page-a4">
+      ${generarCabecera(datos, 1, 'PESOS Y PERÍMETROS PÉRGOLA BIOCLIMÁTICA · DOHA SUN')}
+      
+      <section class="pdf-content-a4">
+        ${bloqueDatos}
+        
+        <div class="pdf-bloque-tabla">
+          <h2 class="pdf-titulo-tabla-ref">Pesos y perímetros por perfil</h2>
+          
+          <table class="pdf-tabla-materiales">
+            <thead>
+              <tr>
+                <th style="width: 15%;">REFERENCIA</th>
+                <th style="width: 50%;">DESCRIPCIÓN</th>
+                <th style="width: 17%;">PESO TOTAL (kg)</th>
+                <th style="width: 18%;">PERÍMETRO (mm)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filasPeso}
+              <tr style="border-top: 2px solid var(--border); font-weight: 700; background-color: var(--blue-soft);">
+                <td colspan="2" style="text-align: right; padding-right: 1rem; color: var(--blue-dark);">TOTALES:</td>
+                <td style="text-align: center; color: var(--blue-dark);">${informe.totales.pesoTotal.toFixed(2)} kg</td>
+                <td style="text-align: center; color: var(--blue-dark);">${informe.totales.perimetroTotal.toFixed(2)} mm</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      
+      ${generarPie(1)}
+    </div>
+  `;
+
+  return `<div class="pdf-documento-multipagina">${htmlCompleto}</div>`;
 }
 
 // ============================================================================

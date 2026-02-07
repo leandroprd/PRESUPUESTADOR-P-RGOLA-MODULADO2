@@ -246,8 +246,10 @@ function prepararDetalleHojaCorte(piezasPerfiles, config) {
     // Optimizar barras
     const opt = optimizarBarras(ref, piezas);
 
-    // Obtener detalles de cada barra
-    const barrasDetalle = generarDetalleBarras(ref, piezas, perfil.longitudes_barra || []);
+    // Obtener detalles de cada barra usando la solución optimizada
+    const barrasDetalle = (opt.barrasDetalle && opt.barrasDetalle.length)
+      ? opt.barrasDetalle
+      : generarDetalleBarras(ref, piezas, perfil.longitudes_barra || []);
 
     detalle.push({
       ref,

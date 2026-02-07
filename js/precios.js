@@ -284,12 +284,12 @@ function refinarSolucionOptima(piezasMm, longitudesBarraMm, solucionInicial) {
  * Optimiza el corte de barras para un perfil específico
  * @param {string} ref - Referencia del perfil
  * @param {Array<number>} piezasMm - Array de longitudes de piezas en mm
- * @returns {object} {barrasPorLongitud, desperdicioTotal}
+ * @returns {object} {barrasPorLongitud, desperdicioTotal, barrasDetalle}
  */
 export function optimizarBarras(ref, piezasMm) {
   const perfil = precio_perfiles[ref];
   if (!perfil || !piezasMm || !piezasMm.length) {
-    return { barrasPorLongitud: {}, desperdicioTotal: 0 };
+    return { barrasPorLongitud: {}, desperdicioTotal: 0, barrasDetalle: [] };
   }
 
   const longitudes = (perfil.longitudes_barra || [])
@@ -310,7 +310,11 @@ export function optimizarBarras(ref, piezasMm) {
     barrasPorLongitud[b.longitud] = (barrasPorLongitud[b.longitud] || 0) + 1;
   });
 
-  return { barrasPorLongitud, desperdicioTotal: solucion.desperdicioTotal };
+  return {
+    barrasPorLongitud,
+    desperdicioTotal: solucion.desperdicioTotal,
+    barrasDetalle: solucion.barras
+  };
 }
 
 // ============================================================================

@@ -666,8 +666,9 @@
 
     .pdf-documento-multipagina {
       font-family: "Calibri", "Segoe UI", system-ui, -apple-system, sans-serif;
-      background: #f5f5f5;
+      background: transparent;
       padding: 20px;
+      min-height: 100%;
     }
 
     .pdf-page-a4 {
@@ -675,7 +676,7 @@
       min-height: 297mm;
       padding: 15mm 18mm;
       margin: 0 auto 20mm;
-      background: transparent;
+      background: #f5f5f5;
       box-sizing: border-box;
       position: relative;
       page-break-after: always;
@@ -1052,7 +1053,7 @@
 
     .pdf-modal-body {
       flex: 1;
-      overflow-y: auto;
+      overflow: auto;
       padding: 2rem;
       background: white;
       touch-action: pan-x pan-y pinch-zoom;
@@ -1060,6 +1061,33 @@
 
     .pdf-preview-content {
       margin: 0 auto;
+      min-height: 100%;
+    }
+
+    @media (max-width: 900px) {
+      .pdf-modal-container {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        border-radius: 0;
+      }
+
+      .pdf-modal-body {
+        padding: 1rem;
+      }
+
+      .pdf-documento-multipagina {
+        padding: 12px;
+      }
+
+      .pdf-page-a4 {
+        padding: 12mm 10mm;
+        margin: 0 auto 16mm;
+      }
+
+      .pdf-page-a4:last-child {
+        margin-bottom: 0;
+      }
     }
 
     .pdf-modal-footer {

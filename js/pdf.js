@@ -1545,10 +1545,15 @@ function generarHojaCortePaginada(informe, datos) {
       </div>
       
       <div class="pdf-recuadro-azul">
-        <h3 class="pdf-recuadro-titulo">Información de la configuración</h3>
+        <h3 class="pdf-recuadro-titulo">Datos principales</h3>
         <ul class="pdf-lista-datos">
           <li><strong>Largo/salida:</strong> ${datos.salida.toFixed(2)} m · <strong>Ancho:</strong> ${datos.ancho.toFixed(2)} m · <strong>Altura libre:</strong> ${datos.altura.toFixed(2)} m</li>
-          <li><strong>Módulos:</strong> ${datos.modulos} · <strong>Tipo de montaje:</strong> ${datos.tipoMontajeTexto}</li>
+          <li><strong>Módulos:</strong> ${datos.modulos}</li>
+          <li><strong>Tipo de montaje:</strong> ${datos.tipoMontajeTexto}</li>
+          <li><strong>Nº pilares calculados:</strong> ${datos.numPilares}</li>
+          <li><strong>Motores:</strong> ${datos.modoMotorTexto}</li>
+          <li><strong>Número de lamas:</strong> ${datos.numLamas}</li>
+          <li><strong>Mando:</strong> ${datos.mandoTexto}</li>
         </ul>
       </div>
     </div>
@@ -1668,10 +1673,15 @@ function generarPesoPerimetrosPaginado(informe, totales, datos) {
       </div>
       
       <div class="pdf-recuadro-azul">
-        <h3 class="pdf-recuadro-titulo">Información de la configuración</h3>
+        <h3 class="pdf-recuadro-titulo">Datos principales</h3>
         <ul class="pdf-lista-datos">
           <li><strong>Largo/salida:</strong> ${datos.salida.toFixed(2)} m · <strong>Ancho:</strong> ${datos.ancho.toFixed(2)} m · <strong>Altura libre:</strong> ${datos.altura.toFixed(2)} m</li>
-          <li><strong>Módulos:</strong> ${datos.modulos} · <strong>Tipo de montaje:</strong> ${datos.tipoMontajeTexto}</li>
+          <li><strong>Módulos:</strong> ${datos.modulos}</li>
+          <li><strong>Tipo de montaje:</strong> ${datos.tipoMontajeTexto}</li>
+          <li><strong>Nº pilares calculados:</strong> ${datos.numPilares}</li>
+          <li><strong>Motores:</strong> ${datos.modoMotorTexto}</li>
+          <li><strong>Número de lamas:</strong> ${datos.numLamas}</li>
+          <li><strong>Mando:</strong> ${datos.mandoTexto}</li>
         </ul>
       </div>
     </div>

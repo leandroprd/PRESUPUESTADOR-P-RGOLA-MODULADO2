@@ -24,6 +24,7 @@ import {
 let logoBase64 = null;
 let modalAbierto = false;
 let tipoDocumentoActual = 'material';
+let vistaPreviaGestos = null;
 
 const CONFIG_PDF = {
   LOGO_PATH: './js/logo.png',
@@ -142,6 +143,7 @@ export function abrirVistaPreviaPDF() {
   if (modal) {
     modal.style.display = 'block';
     modalAbierto = true;
+    habilitarGestosVistaPrevia();
     console.log('✅ Modal abierto con vista previa HTML');
   }
 }
@@ -152,6 +154,7 @@ export function cerrarModal() {
     modal.style.display = 'none';
     modalAbierto = false;
   }
+  deshabilitarGestosVistaPrevia();
 }
 
 // ============================================================================
@@ -1825,4 +1828,134 @@ function generarTimestamp() {
 
 export function compartirWhatsApp() {
   alert('Función de compartir WhatsApp - En desarrollo');
+}
+
+function habilitarGestosVistaPrevia() {
+  const modalBody = document.querySelector('.pdf-modal-body');
+  const preview = document.getElementById('pdfPreviewContent');
+  if (!modalBody || !preview) return;
+
+  deshabilitarGestosVistaPrevia();
+
+  const state = {
+    scale: 1,
+    minScale: 0.5,
+    maxScale: 3,
+    translateX: 0,
+    translateY: 0,
+    pointers: new Map(),
+    startDistance: 0,
+    startScale: 1,
+    startTranslateX: 0,
+    startTranslateY: 0,
+    startMidpoint: { x: 0, y: 0 },
+    startPan: { x: 0, y: 0 },
+    controller: new AbortController()
+  };
+
+  const applyTransform = () => {
+    preview.style.transformOrigin = '0 0';
+    preview.style.transform = `translate(${state.translateX}px, ${state.translateY}px) scale(${state.scale})`;
+  };
+
+  const getMidpoint = (p1, p2) => ({
+    x: (p1.x + p2.x) / 2,
+    y: (p1.y + p2.y) / 2
+  });
+
+  const clampScale = value => Math.min(state.maxScale, Math.max(state.minScale, value));
+
+  const onPointerDown = event => {
+    preview.setPointerCapture(event.pointerId);
+    state.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    if (state.pointers.size === 1) {
+      state.startPan = { x: event.clientX, y: event.clientY };
+      state.startTranslateX = state.translateX;
+      state.startTranslateY = state.translateY;
+    }
+
+    if (state.pointers.size === 2) {
+      const [p1, p2] = Array.from(state.pointers.values());
+      state.startDistance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      state.startScale = state.scale;
+      state.startTranslateX = state.translateX;
+      state.startTranslateY = state.translateY;
+      state.startMidpoint = getMidpoint(p1, p2);
+    }
+  };
+
+  const onPointerMove = event => {
+    if (!state.pointers.has(event.pointerId)) return;
+    state.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    if (state.pointers.size === 2) {
+      const [p1, p2] = Array.from(state.pointers.values());
+      const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      if (!state.startDistance) return;
+      const nextScale = clampScale(state.startScale * (distance / state.startDistance));
+      const midpoint = getMidpoint(p1, p2);
+      const deltaX = midpoint.x - state.startMidpoint.x;
+      const deltaY = midpoint.y - state.startMidpoint.y;
+
+      state.scale = nextScale;
+      state.translateX = state.startTranslateX + deltaX;
+      state.translateY = state.startTranslateY + deltaY;
+      applyTransform();
+      return;
+    }
+
+    if (state.pointers.size === 1) {
+      const deltaX = event.clientX - state.startPan.x;
+      const deltaY = event.clientY - state.startPan.y;
+      state.translateX = state.startTranslateX + deltaX;
+      state.translateY = state.startTranslateY + deltaY;
+      applyTransform();
+    }
+  };
+
+  const onPointerUp = event => {
+    if (state.pointers.has(event.pointerId)) {
+      state.pointers.delete(event.pointerId);
+    }
+    if (state.pointers.size < 2) {
+      state.startDistance = 0;
+    }
+  };
+
+  const onWheel = event => {
+    if (!event.ctrlKey) return;
+    event.preventDefault();
+    const delta = -event.deltaY;
+    const zoomFactor = delta > 0 ? 1.05 : 0.95;
+    const nextScale = clampScale(state.scale * zoomFactor);
+    state.scale = nextScale;
+    applyTransform();
+  };
+
+  preview.style.touchAction = 'none';
+  preview.style.transformOrigin = '0 0';
+  preview.style.transform = 'translate(0, 0) scale(1)';
+  modalBody.style.overflow = 'hidden';
+
+  preview.addEventListener('pointerdown', onPointerDown, { signal: state.controller.signal });
+  preview.addEventListener('pointermove', onPointerMove, { signal: state.controller.signal });
+  preview.addEventListener('pointerup', onPointerUp, { signal: state.controller.signal });
+  preview.addEventListener('pointercancel', onPointerUp, { signal: state.controller.signal });
+  preview.addEventListener('wheel', onWheel, { signal: state.controller.signal, passive: false });
+
+  vistaPreviaGestos = { controller: state.controller, preview, modalBody };
+}
+
+function deshabilitarGestosVistaPrevia() {
+  if (!vistaPreviaGestos) return;
+  const { controller, preview, modalBody } = vistaPreviaGestos;
+  controller.abort();
+  if (preview) {
+    preview.style.transform = '';
+    preview.style.transformOrigin = '';
+    preview.style.touchAction = '';
+  }
+  if (modalBody) modalBody.style.overflow = '';
+  vistaPreviaGestos = null;
 }

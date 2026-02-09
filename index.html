@@ -667,8 +667,7 @@
     .pdf-documento-multipagina {
       font-family: "Calibri", "Segoe UI", system-ui, -apple-system, sans-serif;
       background: transparent;
-      padding: 20px;
-      min-height: 100%;
+      padding: 0;
     }
 
     .pdf-page-a4 {
@@ -676,7 +675,8 @@
       min-height: 297mm;
       padding: 15mm 18mm;
       margin: 0 auto 20mm;
-      background: #f5f5f5;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       box-sizing: border-box;
       position: relative;
       page-break-after: always;
@@ -1026,6 +1026,8 @@
       align-items: center;
       padding: 1.5rem;
       border-bottom: 1px solid #e5e7eb;
+      flex-wrap: wrap;
+      gap: 1rem;
     }
 
     .pdf-modal-title {
@@ -1033,6 +1035,56 @@
       font-size: 1.25rem;
       font-weight: 600;
       color: #1f2937;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .pdf-zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #f9fafb;
+      padding: 0.5rem;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .pdf-zoom-btn {
+      background: white;
+      border: 1px solid #d1d5db;
+      color: #374151;
+      cursor: pointer;
+      padding: 0.4rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      min-width: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pdf-zoom-btn:hover {
+      background: #f3f4f6;
+      border-color: #9ca3af;
+    }
+
+    .pdf-zoom-btn:active {
+      transform: scale(0.95);
+    }
+
+    .pdf-zoom-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .pdf-zoom-display {
+      min-width: 55px;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #0054a6;
     }
 
     .pdf-modal-close {
@@ -1054,40 +1106,23 @@
     .pdf-modal-body {
       flex: 1;
       overflow: auto;
-      padding: 2rem;
-      background: #f5f5f5;
-      touch-action: pan-x pan-y pinch-zoom;
+      padding: 0;
+      background: #9ca3af;
+      position: relative;
+    }
+
+    .pdf-preview-wrapper {
+      padding: 20px;
+      min-width: min-content;
+      min-height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
     }
 
     .pdf-preview-content {
-      margin: 0 auto;
-      min-height: 100%;
-    }
-
-    @media (max-width: 900px) {
-      .pdf-modal-container {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        border-radius: 0;
-      }
-
-      .pdf-modal-body {
-        padding: 1rem;
-      }
-
-      .pdf-documento-multipagina {
-        padding: 12px;
-      }
-
-      .pdf-page-a4 {
-        padding: 12mm 10mm;
-        margin: 0 auto 16mm;
-      }
-
-      .pdf-page-a4:last-child {
-        margin-bottom: 0;
-      }
+      transform-origin: top center;
+      transition: transform 0.2s ease-out;
     }
 
     .pdf-modal-footer {
@@ -1096,6 +1131,36 @@
       gap: 1rem;
       padding: 1.5rem;
       border-top: 1px solid #e5e7eb;
+      flex-wrap: wrap;
+    }
+
+    /* Responsive para móvil */
+    @media (max-width: 768px) {
+      .pdf-modal-container {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        border-radius: 0;
+      }
+
+      .pdf-modal-header {
+        padding: 1rem;
+      }
+
+      .pdf-modal-title {
+        font-size: 1rem;
+        min-width: auto;
+      }
+
+      .pdf-zoom-controls {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+      }
+
+      .pdf-modal-footer {
+        padding: 1rem;
+      }
     }
   </style>
 </head>
@@ -1428,9 +1493,6 @@
                 <span class="step-badge">4</span>
                 Resumen de configuración
               </div>
-              <div class="ref-line" id="refLine" style="display: none;">
-                Ref. presupuesto: <span id="refCodeInline"></span>
-              </div>
             </div>
             <span class="pill">Previo</span>
           </div>
@@ -1570,10 +1632,19 @@
       <div class="pdf-modal-container">
         <div class="pdf-modal-header">
           <h2 class="pdf-modal-title">Vista previa del documento</h2>
+          <div class="pdf-zoom-controls">
+            <button class="pdf-zoom-btn" id="btnZoomOut" title="Reducir zoom">−</button>
+            <span class="pdf-zoom-display" id="zoomDisplay">100%</span>
+            <button class="pdf-zoom-btn" id="btnZoomIn" title="Ampliar zoom">+</button>
+            <button class="pdf-zoom-btn" id="btnZoomFit" title="Ajustar a pantalla">⊡</button>
+            <button class="pdf-zoom-btn" id="btnZoomReset" title="Tamaño real">1:1</button>
+          </div>
           <button class="pdf-modal-close" id="btnCerrarModal">✕</button>
         </div>
-        <div class="pdf-modal-body">
-          <div id="pdfPreviewContent" class="pdf-preview-content"></div>
+        <div class="pdf-modal-body" id="pdfModalBody">
+          <div class="pdf-preview-wrapper">
+            <div id="pdfPreviewContent" class="pdf-preview-content"></div>
+          </div>
         </div>
         <div class="pdf-modal-footer">
           <button class="secondary" id="btnCerrarModalFooter">Cerrar</button>

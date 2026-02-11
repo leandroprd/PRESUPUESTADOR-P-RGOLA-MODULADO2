@@ -43,7 +43,7 @@ export const calculadores_longitud = {
   "6391": ctx => ctx.salidaMm,
   
   // Perfiles que van en el ancho del módulo
-  "7616": ctx => ctx.anchoModuloMm ?? ctx.anchoMm,
+  "7616": ctx => ctx.salidaMm,
   "6212": ctx => Math.max((ctx.anchoModuloMm ?? ctx.anchoMm) - 90, 0),
   
   // Travesaño lateral doble (entre módulos): salida total
@@ -214,6 +214,7 @@ export function generarListaMateriales(params) {
     ladosMotores,
     mando,
     incluirPilaresRefuerzo,
+    incluirPerfil7497,
     sensorLluvia,
     sensorViento
   } = params;
@@ -238,7 +239,9 @@ export function generarListaMateriales(params) {
   add("6391", 2);              // laterales (SIEMPRE 2)
   add("7616", 2 * modulos);    // canalones
   add("6212", 2 * modulos);    // frontales
-  add("7497", 2 * modulos);    // frontales 100x55
+  if (incluirPerfil7497) {
+    add("7497", 2 * modulos);  // suplemento frontal 100x55 (opcional)
+  }
   add("1015B", 2 * modulos);   // lama tracción
   add("7985B", 2 * modulos);   // soporte lamas
   add("5960",  2 * modulos);   // tapeta clipada sobre 7985B (misma longitud)
@@ -253,15 +256,15 @@ export function generarListaMateriales(params) {
 
   // Tapas y kits por módulo / lama
   add("PB0005", 4 * modulos); // tapa canalón
+  const totalLamasConTapasPB0032PB0033 = totalLamas;
+  add("PB0032", totalLamasConTapasPB0032PB0033); // tapa lama dcha (1 por lama)
+  add("PB0033", totalLamasConTapasPB0032PB0033); // tapa lama izda (1 por lama)
   const totalLamasInclMotor = totalLamas + modulos;
-  add("PB0032", totalLamasInclMotor); // tapa lama dcha
-  add("PB0033", totalLamasInclMotor); // tapa lama izda
   add("PB0030", totalLamasInclMotor); // kit tornillería lama
 
   // Motor y kits
   add("MO4004", modulos);
-  add("PB4505", modulos);
-  add("PB4505", 2 * modulos); // fijación extra para lama compensadora
+  add("PB4505", modulos); // 1 adaptador por motor
   add("PB0031", modulos);
   add("TA2010", 4 * modulos);
 

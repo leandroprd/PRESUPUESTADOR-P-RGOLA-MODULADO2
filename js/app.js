@@ -540,6 +540,7 @@ export function calcularMateriales(auto = false, incluirPilaresRefuerzoParam) {
   const chkSensorViento = document.getElementById("sensorViento");
   const sensorLluvia = chkSensorLluvia ? chkSensorLluvia.checked : false;
   const sensorViento = chkSensorViento ? chkSensorViento.checked : false;
+  const incluirPerfil7497 = document.getElementById("chkPerfil7497")?.checked || false;
 
   const { materiales, notas } = generarListaMateriales({
     ancho,
@@ -553,6 +554,7 @@ export function calcularMateriales(auto = false, incluirPilaresRefuerzoParam) {
     ladosMotores,
     mando,
     incluirPilaresRefuerzo,
+    incluirPerfil7497,
     sensorLluvia,
     sensorViento
   });
@@ -695,6 +697,8 @@ export function resetearCalculoParcial() {
   document.querySelector("input[name='modoMotor'][value='todos-izquierda']").checked = true;
   const chkRefuerzo = document.getElementById("chkPilaresRefuerzo");
   if (chkRefuerzo) chkRefuerzo.checked = false;
+  const chkPerfil7497 = document.getElementById("chkPerfil7497");
+  if (chkPerfil7497) chkPerfil7497.checked = false;
   document.getElementById("mando").value = "con";
   document.getElementById("pilaresDisplay").textContent = "—";
   actualizarCalibrePilares(null);
@@ -834,6 +838,8 @@ export function configurarEventListeners() {
   const sensorViento = document.getElementById("sensorViento");
   if (sensorLluvia) sensorLluvia.addEventListener("change", actualizarConfiguracionRapida);
   if (sensorViento) sensorViento.addEventListener("change", actualizarConfiguracionRapida);
+  const chkPerfil7497 = document.getElementById("chkPerfil7497");
+  if (chkPerfil7497) chkPerfil7497.addEventListener("change", actualizarConfiguracionRapida);
 
   // Colores
   document.querySelectorAll("input[name='colorModo']").forEach(r => {

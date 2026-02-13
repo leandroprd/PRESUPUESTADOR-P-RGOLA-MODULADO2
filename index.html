@@ -240,9 +240,12 @@
       -webkit-appearance: none;
       margin: 0;
     }
+
     input[type="number"] {
-      -moz-appearance: textfield;
+  -moz-appearance: textfield;
+  appearance: textfield;
     }
+    
     input::placeholder {
       color: #9ca3af;
     }
@@ -1364,15 +1367,14 @@
     <div class="v-card">
       <img src="./js/logo.png" alt="" class="v-logo" onerror="this.style.display='none'" />
       <p class="v-brand">Aluminios Galisur</p>
-      <p class="v-sub">Serie Doha Sun &nbsp;·&nbsp; Tarifa 2026</p>
+      <p class="v-sub">Serie Doha Sun</p>
       <div class="v-divider"></div>
-      <span class="v-label">Entrada corporativa</span>
       <input id="v-field" type="text" inputmode="numeric" autocomplete="off"
-             spellcheck="false" placeholder="· · · · · · · ·" maxlength="12" />
-      <button id="v-btn">Acceder</button>
-      <button id="v-install-btn" style="display:block;">⬇️ &nbsp;Instalar en este dispositivo</button>
+             spellcheck="false" placeholder="-----------" maxlength="12" />
+      <button id="v-btn" style="display:block;" >Acceder</button>
+      <button id="v-install-btn" style="display:block;">⬇️ Instalar en este dispositivo</button>
       <img id="v-img-err" src="./js/vidrio.png" alt="" draggable="false" />
-      <p class="v-footer">Uso exclusivo para distribuidores autorizados</p>
+      <p class="v-footer">Uso exclusivo para personas autorizadas</p>
     </div>
   </div>
 
@@ -1571,17 +1573,19 @@
 
             <!-- Número de pilares calculado - Bloque separado y destacado -->
             <div style="margin-top: 0.7rem;">
-              <label style="display: block; font-size: 0.8rem; color: var(--text-soft); margin-bottom: 0.4rem; font-weight: 600;">Nº de pilares (calculado)</label>
-              <div id="pilaresDisplay" class="pilares-pill" style="background: #f3f4f6; padding: 0.6rem; border-radius: 0.6rem; font-size: 1.2rem; font-weight: 700; color: var(--blue-dark); text-align: center; border: 2px solid #e5e7eb;">—</div>
-              <div class="field-note" id="calibrePilaresDisplay" style="margin-top: 0.4rem; font-style: italic; color: var(--text-soft); text-align: center;">Calibre de los pilares: —</div>
-              <!-- Perfil opcional 7497 - junto al cálculo de pilares -->
-              <div style="margin-top: 0.6rem;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; color: var(--text-soft);">
-                  <input type="checkbox" id="chkSuplementoFrontal7497" style="width: auto; margin: 0;">
-                  <span>Suplemento frontal 7497</span>
-                </label>
-              </div>
+              <label style="display: block; font-size: 0.8rem; color: var(--text-soft); margin-bottom: 0.4rem; font-weight: 600;">Nº de pilares</label>
+  
+            <!-- Contenedor flex para pilares y checkbox en la misma línea -->
+            <div style="display: flex; align-items: center; gap: 0.8rem;">
+              <div id="pilaresDisplay" class="pilares-pill" style="background: #f3f4f6; padding: 0.6rem; border-radius: 0.6rem; font-size: 1.2rem; font-weight: 700; color: var(--blue-dark); text-align: center; border: 2px solid #e5e7eb; flex: 0 0 auto; min-width: 60px;">—</div>
+    
+            <!-- Perfil opcional 7497 - al lado de pilares -->
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; color: var(--text-soft); margin: 0; margin-left: 173px;">
+              <input type="checkbox" id="chkSuplementoFrontal7497" style="width: auto; margin: 0;">
+              <span>Suplemento frontal 7497</span>
+              </label>
             </div>
+          </div>
           </div>
 
           <!-- ============ BLOQUE 2: AUTOMATIZACIÓN ============ -->
@@ -1955,7 +1959,7 @@
       btn.addEventListener('click', async () => {
         if (!_deferredPrompt) {
           // Fallback: instrucciones manuales
-          alert('Para instalar:\n• Chrome/Edge PC: menú ⋮ → Instalar aplicación\n• Android: menú ⋮ → Añadir a pantalla de inicio\n• iPhone/iPad: botón compartir → Añadir a inicio');
+          alert('Para instalar:\n• Android: menú ⋮ → Añadir a pantalla de inicio\n• iPhone/iPad: botón compartir → Añadir a inicio');
           return;
         }
         _deferredPrompt.prompt();
